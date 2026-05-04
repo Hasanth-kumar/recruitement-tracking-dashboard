@@ -1,9 +1,11 @@
 package com.rts.modules.auth.application;
 
 import com.rts.modules.auth.api.dto.UpdateUserProfileRequest;
+import com.rts.modules.auth.domain.Role;
 import com.rts.modules.auth.domain.User;
 import com.rts.modules.auth.persistence.UserRepository;
 import com.rts.shared.exception.ConflictException;
+import com.rts.shared.exception.ResourceNotFoundException;
 import com.rts.shared.exception.ValidationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -11,6 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Service
 public class UserService {
@@ -89,5 +93,25 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoder.encode(request.newPassword()));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
+    public List<User> listUsersForAdmin() {
+        return userRepository.findByDeletedFalseOrderByUsernameAsc();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public User updateUserRole(Authentication authentication, String targetUserId, Role newRole) {
+        User actor = authService.getAuthenticatedUser(authentication);
+        if (actor.getId().equals(targetUserId)) {
+            throw new ValidationException("You cannot change your own role");
+        }
+        User target = userRepository.findById(targetUserId)
+                .filter(user -> !user.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        target.setRole(newRole);
+        return userRepository.save(target);
     }
 }

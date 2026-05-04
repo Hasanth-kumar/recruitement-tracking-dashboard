@@ -6,6 +6,11 @@ import {
   EyeInvisibleOutlined,
   EyeTwoTone,
 } from '@ant-design/icons';
+import { useAppDispatch } from '../../../shared/hooks/useAuth';
+import { credentialsReceived } from '../authSlice';
+import { mapToAuthUser } from '../authApi';
+import { encodeBasicAuth } from '../../../shared/utils/basicAuth';
+import { Role } from '../../../constants/roles';
 import '../../../App.css';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -36,28 +41,32 @@ interface MockUser {
   id: string;
   username: string;
   email: string;
-  fullName: string;
-  role: string;
+  role: Role;
 }
 
 const MOCK_USERS: Record<string, MockUser> = {
-  'admin@rts.com': { id: '1', username: 'admin', email: 'admin@rts.com', fullName: 'Admin User', role: 'ADMIN' },
-  'hr@rts.com': { id: '2', username: 'hr', email: 'hr@rts.com', fullName: 'HR Manager', role: 'HR_MANAGER' },
-  'recruiter@rts.com': { id: '3', username: 'recruiter', email: 'recruiter@rts.com', fullName: 'Recruiter User', role: 'RECRUITER' },
-  'interviewer@rts.com': { id: '4', username: 'interviewer', email: 'interviewer@rts.com', fullName: 'Interviewer User', role: 'INTERVIEWER' },
+  'admin@rts.com': { id: '1', username: 'admin', email: 'admin@rts.com', role: Role.ADMIN },
+  'hr@rts.com': { id: '2', username: 'hr', email: 'hr@rts.com', role: Role.HR_MANAGER },
+  'recruiter@rts.com': { id: '3', username: 'recruiter', email: 'recruiter@rts.com', role: Role.RECRUITER },
+  'interviewer@rts.com': { id: '4', username: 'interviewer', email: 'interviewer@rts.com', role: Role.INTERVIEWER },
 };
 
-function mockLogin(identifier: string, password: string): { token: string; role: string } {
+function mockLogin(identifier: string, password: string): { user: MockUser } {
   const user = MOCK_USERS[identifier.toLowerCase()];
   if (!user || !password) throw new Error('Invalid credentials. Please try again.');
-  // Simulate a JWT-shaped token string
-  const fakeToken = btoa(JSON.stringify({ sub: user.id, role: user.role, exp: Date.now() + 7_200_000 }));
-  return { token: fakeToken, role: user.role };
+  return { user };
+}
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
 }
 
 // ── Component ──────────────────────────────────────────────────
 
 const LoginPage: React.FC = () => {
+  const dispatch = useAppDispatch();
   const [form, setForm] = useState<FormState>({
     identifier: '',
     password: '',
@@ -84,6 +93,18 @@ const LoginPage: React.FC = () => {
     return null;
   };
 
+  const persistSession = (principal: string, password: string, user: ReturnType<typeof mapToAuthUser>) => {
+    const token = encodeBasicAuth(principal, password);
+    dispatch(
+      credentialsReceived({
+        token,
+        user,
+        rememberMe: form.rememberMe,
+        basicAuthPrincipal: principal,
+      })
+    );
+  };
+
   const handleSubmit = async () => {
     const err = validate();
     if (err) { setError(err); return; }
@@ -91,30 +112,30 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    try {
-      let token: string;
-      let role: string;
+    const principal = form.identifier.trim();
 
+    try {
       if (USE_MOCK) {
-        // ── Mock path — no backend needed ──────────────────────
-        await new Promise(r => setTimeout(r, 600)); // simulate network delay
-        ({ token, role } = mockLogin(form.identifier.trim(), form.password));
+        await new Promise(r => setTimeout(r, 600));
+        const { user } = mockLogin(principal, form.password);
+        persistSession(principal, form.password, mapToAuthUser(user));
       } else {
-        // ── Real path — Spring Boot backend ────────────────────
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ usernameOrEmail: form.identifier.trim(), password: form.password }),
+          body: JSON.stringify({ usernameOrEmail: principal, password: form.password }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Invalid credentials. Please try again.');
-        token = data.data.token;
-        role = data.data.role;
-      }
+        const data = (await res.json()) as ApiEnvelope<{ user: { id: string; username: string; email: string; role: string } }>;
 
-      const storage = form.rememberMe ? localStorage : sessionStorage;
-      storage.setItem('rts_token', token);
-      storage.setItem('rts_role', role);
+        if (!res.ok) {
+          throw new Error(data.message || 'Invalid credentials. Please try again.');
+        }
+        if (!data.success || !data.data?.user) {
+          throw new Error(data.message || 'Login failed. Please try again.');
+        }
+
+        persistSession(principal, form.password, mapToAuthUser(data.data.user));
+      }
 
       window.location.href = '/dashboard';
     } catch (e: unknown) {

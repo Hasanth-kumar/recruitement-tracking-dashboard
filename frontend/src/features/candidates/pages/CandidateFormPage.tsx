@@ -24,19 +24,18 @@ import {
  mockUpdateCandidatePhoto,
  mockUpdateCandidateResume,
 } from '../candidateMock';
+import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
+import { Role } from '../../../constants/roles';
 
 // ── Mock flag ───────────────────────────────────────────────────
 // Set to false when Spring Boot backend is running
 const USE_MOCK = false;
 
 // ── API helpers (real path) ─────────────────────────────────────
-function getToken(): string {
- return localStorage.getItem('rts_token') ?? sessionStorage.getItem('rts_token') ?? '';
-}
 
 async function apiGetCandidate(id: string) {
  const res = await fetch(`/api/candidates/${id}`, {
-   headers: { Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(false),
  });
  const data = await res.json();
  if (!data.success) throw new Error(data.message);
@@ -46,7 +45,7 @@ async function apiGetCandidate(id: string) {
 async function apiCreateCandidate(payload: object) {
  const res = await fetch('/api/candidates', {
    method: 'POST',
-   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(true),
    body: JSON.stringify(payload),
  });
  const data = await res.json();
@@ -57,7 +56,7 @@ async function apiCreateCandidate(payload: object) {
 async function apiUpdateCandidate(id: string, payload: object) {
  const res = await fetch(`/api/candidates/${id}`, {
    method: 'PUT',
-   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(true),
    body: JSON.stringify(payload),
  });
  const data = await res.json();
@@ -70,7 +69,7 @@ async function apiUploadPhoto(id: string, file: File) {
  fd.append('photo', file);
  const res = await fetch(`/api/candidates/${id}/photo`, {
    method: 'POST',
-   headers: { Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(false),
    body: fd,
  });
  const data = await res.json();
@@ -82,7 +81,7 @@ async function apiUploadResume(id: string, file: File) {
  fd.append('resume', file);
  const res = await fetch(`/api/candidates/${id}/resume`, {
    method: 'POST',
-   headers: { Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(false),
    body: fd,
  });
  const data = await res.json();
@@ -277,7 +276,7 @@ const CandidateFormPage: React.FC = () => {
  const handleCancel = () => navigate('/candidates');
 
  const logout = () => {
-   ['rts_token', 'rts_role', 'rts_user'].forEach(k => {
+   ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
      localStorage.removeItem(k);
      sessionStorage.removeItem(k);
    });
@@ -304,10 +303,13 @@ const CandidateFormPage: React.FC = () => {
            Recruitment Tracking System
          </span>
        </div>
-       <div style={s.navLinks}>
-         <a href="/dashboard"  style={s.navLink}>Dashboard</a>
-         <a href="/candidates" style={s.navLink}>Candidates</a>
-         <a href="/profile"    style={s.navLink}>Profile</a>
+      <div style={s.navLinks}>
+        <a href="/dashboard"  style={s.navLink}>Dashboard</a>
+        <a href="/candidates" style={s.navLink}>Candidates</a>
+        {(localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role')) === Role.ADMIN && (
+          <a href="/admin/users" style={s.navLink}>Users</a>
+        )}
+        <a href="/profile"    style={s.navLink}>Profile</a>
          <button onClick={logout} style={s.navBtn}>Sign out</button>
        </div>
      </div>

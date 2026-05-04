@@ -3,17 +3,18 @@ import axios, {
     type AxiosResponse,
     type InternalAxiosRequestConfig,
    } from 'axios';
-   
+   import { authorizationBasicHeader } from './basicAuth';
+
    const TOKEN_KEY = 'rts_token';
    const BASE_URL  = 'http://localhost:8080';
-   
+
    function getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
    }
-   
+
    function clearCredentials() {
     [localStorage, sessionStorage].forEach(s => {
-      ['rts_token', 'rts_role', 'rts_user'].forEach(k => s.removeItem(k));
+      ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => s.removeItem(k));
     });
    }
    
@@ -23,12 +24,12 @@ import axios, {
     headers: { 'Content-Type': 'application/json' },
    });
    
-   // ── Request — attach token ─────────────────────────────────────
+   // ── Request — HTTP Basic (backend is stateless; no JWT from login)
    axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
       const token = getToken();
       if (token && config.headers) {
-        config.headers['Authorization'] = `Bearer ${token}`;
+        config.headers['Authorization'] = authorizationBasicHeader(token);
       }
       return config;
     },

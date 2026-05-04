@@ -1,121 +1,168 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../../store/store';
-import { credentialsReceived, profileUpdated, sessionExpired, AuthUser } from './authSlice';
-// import type { AuthUser } from './authSlice';
+import {
+  credentialsReceived,
+  profileUpdated,
+  sessionExpired,
+  type AuthUser,
+} from './authSlice';
+import { Role } from '../../constants/roles';
+import { authorizationBasicHeader, encodeBasicAuth } from '../../shared/utils/basicAuth';
 
 // ── DTOs (mirror backend) ──────────────────────────────────────
 
 export interface LoginRequest {
- identifier: string;
- password: string;
- rememberMe?: boolean;
+  identifier: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+/** Backend LoginResponse: only nested user, no JWT. */
+export interface LoginUserInfo {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
 }
 
 export interface LoginResponse {
- token: string;
- tokenType: string;
- expiresIn: number;
- user: AuthUser;
+  user: LoginUserInfo;
 }
 
+/** Backend UpdateUserProfileRequest — all password fields required together when changing password. */
 export interface UpdateProfileRequest {
- fullName?: string;
- email?: string;
- phone?: string;
-}
-
-export interface ChangePasswordRequest {
- currentPassword: string;
- newPassword: string;
+  username?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmNewPassword?: string;
 }
 
 interface ApiResponse<T> {
- success: boolean;
- message: string;
- data: T;
- timestamp: string;
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+}
+
+export function mapToAuthUser(data: {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+}): AuthUser {
+  return {
+    id: data.id,
+    username: data.username,
+    email: data.email,
+    role: data.role as Role,
+  };
 }
 
 // ── Base query ─────────────────────────────────────────────────
 
 const baseQuery = fetchBaseQuery({
- baseUrl: '/api',
- prepareHeaders: (headers, { getState }) => {
-   const token = (getState() as RootState).auth.token;
-   if (token) headers.set('Authorization', `Bearer ${token}`);
-   headers.set('Content-Type', 'application/json');
-   return headers;
- },
+  baseUrl: '/api',
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.token;
+    if (token) headers.set('Authorization', authorizationBasicHeader(token));
+    headers.set('Content-Type', 'application/json');
+    return headers;
+  },
 });
 
 const baseQueryWithAuthGuard: typeof baseQuery = async (args, api, extra) => {
- const result = await baseQuery(args, api, extra);
- if (result.error?.status === 401) api.dispatch(sessionExpired());
- return result;
+  const result = await baseQuery(args, api, extra);
+  if (result.error?.status === 401) api.dispatch(sessionExpired());
+  return result;
 };
 
 // ── API slice ──────────────────────────────────────────────────
 
 export const authApi = createApi({
- reducerPath: 'authApi',
- baseQuery: baseQueryWithAuthGuard,
- tagTypes: ['Profile'],
+  reducerPath: 'authApi',
+  baseQuery: baseQueryWithAuthGuard,
+  tagTypes: ['Profile', 'AdminUsers'],
 
- endpoints: (builder) => ({
+  endpoints: (builder) => ({
+    login: builder.mutation<ApiResponse<LoginResponse>, LoginRequest>({
+      query: ({ identifier, password }) => ({
+        url: '/auth/login',
+        method: 'POST',
+        body: { usernameOrEmail: identifier.trim(), password },
+      }),
+      async onQueryStarted(
+        { identifier, password, rememberMe = false },
+        { dispatch, queryFulfilled }
+      ) {
+        try {
+          const { data: res } = await queryFulfilled;
+          if (res.success && res.data?.user) {
+            const principal = identifier.trim();
+            dispatch(
+              credentialsReceived({
+                token: encodeBasicAuth(principal, password),
+                user: mapToAuthUser(res.data.user),
+                rememberMe,
+                basicAuthPrincipal: principal,
+              })
+            );
+          }
+        } catch {
+          /* component handles */
+        }
+      },
+    }),
 
-   login: builder.mutation<ApiResponse<LoginResponse>, LoginRequest>({
-     query: ({ identifier, password }) => ({
-       url: '/auth/login',
-       method: 'POST',
-       body: { identifier, password },
-     }),
-     async onQueryStarted({ rememberMe = false }, { dispatch, queryFulfilled }) {
-       try {
-         const { data: res } = await queryFulfilled;
-         if (res.success) {
-           dispatch(credentialsReceived({ token: res.data.token, user: res.data.user, rememberMe }));
-         }
-       } catch { /* component handles */ }
-     },
-   }),
+    getProfile: builder.query<ApiResponse<AuthUser>, void>({
+      query: () => '/users/profile',
+      transformResponse: (res: ApiResponse<AuthUser>) => ({
+        ...res,
+        data: mapToAuthUser(res.data as unknown as LoginUserInfo),
+      }),
+      providesTags: ['Profile'],
+    }),
 
-   getProfile: builder.query<ApiResponse<AuthUser>, void>({
-     query: () => '/users/profile',
-     providesTags: ['Profile'],
-   }),
+    updateProfile: builder.mutation<ApiResponse<AuthUser>, UpdateProfileRequest>({
+      query: (body) => ({ url: '/users/profile', method: 'PUT', body }),
+      invalidatesTags: ['Profile'],
+      async onQueryStarted(_patch, { dispatch, queryFulfilled }) {
+        try {
+          const { data: res } = await queryFulfilled;
+          if (res.success) dispatch(profileUpdated(mapToAuthUser(res.data as unknown as LoginUserInfo)));
+        } catch {
+          /* component handles */
+        }
+      },
+    }),
 
-   updateProfile: builder.mutation<ApiResponse<AuthUser>, UpdateProfileRequest>({
-     query: (body) => ({ url: '/users/profile', method: 'PUT', body }),
-     invalidatesTags: ['Profile'],
-     async onQueryStarted(_patch, { dispatch, queryFulfilled }) {
-       try {
-         const { data: res } = await queryFulfilled;
-         if (res.success) dispatch(profileUpdated(res.data));
-       } catch { /* component handles */ }
-     },
-   }),
+    getAdminUsers: builder.query<ApiResponse<AuthUser[]>, void>({
+      query: () => '/admin/users',
+      transformResponse: (res: ApiResponse<LoginUserInfo[]>) => ({
+        ...res,
+        data: (res.data ?? []).map((u) => mapToAuthUser(u)),
+      }),
+      providesTags: ['AdminUsers'],
+    }),
 
-   changePassword: builder.mutation<ApiResponse<null>, ChangePasswordRequest>({
-     query: (body) => ({ url: '/users/password', method: 'PUT', body }),
-   }),
-
-   uploadAvatar: builder.mutation<ApiResponse<{ avatarUrl: string }>, FormData>({
-     query: (formData) => ({ url: '/users/profile/avatar', method: 'POST', body: formData, formData: true }),
-     invalidatesTags: ['Profile'],
-     async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
-       try {
-         const { data: res } = await queryFulfilled;
-         if (res.success) dispatch(profileUpdated({ avatarUrl: res.data.avatarUrl }));
-       } catch { /* component handles */ }
-     },
-   }),
- }),
+    updateUserRole: builder.mutation<
+      ApiResponse<AuthUser>,
+      { userId: string; role: Role }
+    >({
+      query: ({ userId, role }) => ({
+        url: `/admin/users/${userId}/role`,
+        method: 'PUT',
+        body: { role },
+      }),
+      invalidatesTags: ['AdminUsers'],
+    }),
+  }),
 });
 
 export const {
- useLoginMutation,
- useGetProfileQuery,
- useUpdateProfileMutation,
- useChangePasswordMutation,
- useUploadAvatarMutation,
+  useLoginMutation,
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+  useGetAdminUsersQuery,
+  useUpdateUserRoleMutation,
 } = authApi;

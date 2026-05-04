@@ -4,9 +4,12 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './features/auth/pages/LoginPage';
+import AdminUsersPage from './features/auth/pages/AdminUsersPage';
 import ProfilePage from './features/auth/components/ProfilePage';
 import CandidateListPage from './features/candidates/pages/CandidateListPage';
 import CandidateFormPage from './features/candidates/pages/CandidateFormPage';
+import { Role } from './constants/roles';
+import { useAuth } from './shared/hooks/useAuth';
 
 // ── Simple auth guard ──────────────────────────────────────────
 // Checks for a token in either storage tier before allowing access
@@ -19,14 +22,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return isLoggedIn() ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
+  const role = localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role');
+  if (role !== Role.ADMIN) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 // ── Temporary dashboard placeholder ───────────────────────────
 // Replace this with your real DashboardPage once it's built
 
 function DashboardPlaceholder() {
-  const role = localStorage.getItem('rts_role') || sessionStorage.getItem('rts_role') || '';
+  const { role, hasRole } = useAuth();
 
   const logout = () => {
-    ['rts_token', 'rts_role', 'rts_user'].forEach(k => {
+    ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
     });
@@ -43,6 +53,9 @@ function DashboardPlaceholder() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <a href="/candidates" style={{ fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' }}>Candidates</a>
+          {hasRole(Role.ADMIN) && (
+            <a href="/admin/users" style={{ fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' }}>Users</a>
+          )}
           <a href="/profile" style={{ fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' }}>Profile</a>
           <button onClick={logout} style={{ fontSize: '0.85rem', color: '#6b6b65', background: 'none', border: '1px solid #e4e4e0', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>
             Sign out
@@ -53,7 +66,7 @@ function DashboardPlaceholder() {
       {/* Body */}
       <div style={{ maxWidth: 700, margin: '4rem auto', padding: '0 2rem', textAlign: 'center' }}>
         <div style={{ display: 'inline-block', padding: '3px 10px', background: '#eff4ff', border: '1px solid #bfdbfe', borderRadius: 99, fontSize: '0.75rem', color: '#2563eb', fontWeight: 500, marginBottom: '1rem' }}>
-          Signed in as {role}
+          Signed in as {role ?? '—'}
         </div>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1a1a18', marginBottom: '0.75rem' }}>
           Dashboard
@@ -84,6 +97,7 @@ const App: React.FC = () => {
         {/* Protected */}
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
         <Route path="/candidates" element={<ProtectedRoute><CandidateListPage /></ProtectedRoute>} />
         <Route path="/candidates/new" element={<ProtectedRoute><CandidateFormPage /></ProtectedRoute>} />
         <Route path="/candidates/:id/edit" element={<ProtectedRoute><CandidateFormPage /></ProtectedRoute>} />

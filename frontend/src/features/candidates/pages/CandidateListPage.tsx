@@ -21,6 +21,8 @@ import {
  mockUpdateCandidate,
  mockDeleteCandidate,
 } from '../candidateMock';
+import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
+import { Role } from '../../../constants/roles';
 
 // ── Mock flag ───────────────────────────────────────────────────
 const USE_MOCK = true;
@@ -28,13 +30,10 @@ const USE_MOCK = true;
 const PAGE_SIZE = 20;
 
 // ── API helpers (real path) ─────────────────────────────────────
-function getToken() {
- return localStorage.getItem('rts_token') ?? sessionStorage.getItem('rts_token') ?? '';
-}
 
 async function apiFetchCandidates(): Promise<Candidate[]> {
  const res  = await fetch('/api/candidates', {
-   headers: { Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(false),
  });
  const data = await res.json();
  if (!data.success) throw new Error(data.message);
@@ -44,7 +43,7 @@ async function apiFetchCandidates(): Promise<Candidate[]> {
 async function apiUpdateStage(id: string, stage: RecruitmentStage): Promise<void> {
  const res  = await fetch(`/api/candidates/${id}/stage`, {
    method:  'PUT',
-   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(true),
    body:    JSON.stringify({ stage }),
  });
  const data = await res.json();
@@ -54,7 +53,7 @@ async function apiUpdateStage(id: string, stage: RecruitmentStage): Promise<void
 async function apiDeleteCandidate(id: string): Promise<void> {
  const res  = await fetch(`/api/candidates/${id}`, {
    method:  'DELETE',
-   headers: { Authorization: `Bearer ${getToken()}` },
+   headers: basicAuthFetchHeaders(false),
  });
  const data = await res.json();
  if (!data.success) throw new Error(data.message);
@@ -248,7 +247,7 @@ const CandidateListPage: React.FC = () => {
  const selectedCandidates = allCandidates.filter(c => selectedIds.includes(c.id));
 
  const logout = () => {
-   ['rts_token', 'rts_role', 'rts_user'].forEach(k => {
+   ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
      localStorage.removeItem(k); sessionStorage.removeItem(k);
    });
    window.location.href = '/login';
@@ -268,6 +267,9 @@ const CandidateListPage: React.FC = () => {
        </div>
        <div style={s.navLinks}>
          <a href="/dashboard" style={s.navLink}>Dashboard</a>
+         {(localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role')) === Role.ADMIN && (
+           <a href="/admin/users" style={s.navLink}>Users</a>
+         )}
          <a href="/profile"   style={s.navLink}>Profile</a>
          <button onClick={logout} style={s.navBtn}>Sign out</button>
        </div>
