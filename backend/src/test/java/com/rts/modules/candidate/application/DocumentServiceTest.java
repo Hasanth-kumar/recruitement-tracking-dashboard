@@ -79,6 +79,60 @@ class DocumentServiceTest {
     }
 
     @Test
+    void uploadResumeShouldFailWhenResumeFileIsEmpty() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "resume.pdf",
+                "application/pdf",
+                new byte[0]
+        );
+
+        assertThatThrownBy(() -> documentService.uploadResume("candidate-1", file))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Resume file is required");
+    }
+
+    @Test
+    void uploadResumeShouldFailWhenFileNameHasNoExtension() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "resume",
+                "application/pdf",
+                "sample".getBytes()
+        );
+
+        assertThatThrownBy(() -> documentService.uploadResume("candidate-1", file))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("File extension is required");
+    }
+
+    @Test
+    void uploadResumeShouldAcceptDocxExtension() throws Exception {
+        String candidateId = "candidate-1";
+        Candidate candidate = new Candidate();
+        candidate.setId(candidateId);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "resume.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "sample".getBytes()
+        );
+
+        when(candidateRepository.findByIdAndDeletedFalse(candidateId)).thenReturn(Optional.of(candidate));
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse(
+                candidateId, CandidateDocumentType.RESUME
+        )).thenReturn(Optional.empty());
+        when(candidateDocumentRepository.save(any(CandidateDocument.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CandidateDocument saved = documentService.uploadResume(candidateId, file);
+
+        assertThat(saved.getOriginalFileName()).isEqualTo("resume.docx");
+        assertThat(saved.getFilePath()).endsWith(".docx");
+    }
+
+    @Test
     void uploadResumeShouldFailForUnsupportedExtension() {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -182,6 +236,39 @@ class DocumentServiceTest {
     }
 
     @Test
+    void uploadPhotoShouldFailWhenPhotoFileIsEmpty() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "profile.png",
+                "image/png",
+                new byte[0]
+        );
+
+        assertThatThrownBy(() -> documentService.uploadPhoto("candidate-1", file))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Photo file is required");
+    }
+
+    @Test
+    void uploadPhotoShouldFailWhenImageContentIsInvalid() {
+        String candidateId = "candidate-1";
+        Candidate candidate = new Candidate();
+        candidate.setId(candidateId);
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "profile.png",
+                "image/png",
+                "not-an-image".getBytes()
+        );
+
+        when(candidateRepository.findByIdAndDeletedFalse(candidateId)).thenReturn(Optional.of(candidate));
+
+        assertThatThrownBy(() -> documentService.uploadPhoto(candidateId, file))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Invalid image file");
+    }
+
+    @Test
     void uploadPhotoShouldFailForUnsupportedExtension() {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -208,6 +295,51 @@ class DocumentServiceTest {
         assertThatThrownBy(() -> documentService.uploadPhoto("candidate-1", file))
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("Photo file size must not exceed 2MB");
+    }
+
+    @Test
+    void uploadPhotoShouldFailWhenCandidateDoesNotExist() throws Exception {
+        String candidateId = "missing";
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "profile.png",
+                "image/png",
+                createImageBytes("png", 40, 40)
+        );
+        when(candidateRepository.findByIdAndDeletedFalse(candidateId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> documentService.uploadPhoto(candidateId, file))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Candidate not found: missing");
+    }
+
+    @Test
+    void uploadPhotoShouldReuseExistingPhotoDocumentRecord() throws Exception {
+        String candidateId = "candidate-1";
+        Candidate candidate = new Candidate();
+        candidate.setId(candidateId);
+        CandidateDocument existing = new CandidateDocument();
+        existing.setId("photo-doc-1");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "profile.jpg",
+                "image/jpeg",
+                createImageBytes("jpeg", 80, 80)
+        );
+
+        when(candidateRepository.findByIdAndDeletedFalse(candidateId)).thenReturn(Optional.of(candidate));
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse(
+                candidateId, CandidateDocumentType.PHOTO
+        )).thenReturn(Optional.of(existing));
+        when(candidateDocumentRepository.save(any(CandidateDocument.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        documentService.uploadPhoto(candidateId, file);
+
+        ArgumentCaptor<CandidateDocument> captor = ArgumentCaptor.forClass(CandidateDocument.class);
+        verify(candidateDocumentRepository).save(captor.capture());
+        assertThat(captor.getValue().getId()).isEqualTo("photo-doc-1");
     }
 
     private byte[] createImageBytes(String format, int width, int height) throws Exception {

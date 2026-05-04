@@ -1,0 +1,285 @@
+import React, { useState } from 'react';
+import { Input, Button, Alert, Checkbox } from 'antd';
+import {
+  UserOutlined,
+  LockOutlined,
+  EyeInvisibleOutlined,
+  EyeTwoTone,
+} from '@ant-design/icons';
+import '../../../App.css';
+
+// ── Types ──────────────────────────────────────────────────────
+
+interface FormState {
+  identifier: string;
+  password: string;
+  rememberMe: boolean;
+}
+
+interface RolePreset {
+  label: string;
+  identifier: string;
+}
+
+const ROLE_PRESETS: RolePreset[] = [
+  { label: 'Admin', identifier: 'admin@rts.com' },
+  { label: 'HR Manager', identifier: 'hr@rts.com' },
+  { label: 'Recruiter', identifier: 'recruiter@rts.com' },
+  { label: 'Interviewer', identifier: 'interviewer@rts.com' },
+];
+
+// ── Mock login (remove once backend is ready) ──────────────────
+
+const USE_MOCK = false;
+
+interface MockUser {
+  id: string;
+  username: string;
+  email: string;
+  fullName: string;
+  role: string;
+}
+
+const MOCK_USERS: Record<string, MockUser> = {
+  'admin@rts.com': { id: '1', username: 'admin', email: 'admin@rts.com', fullName: 'Admin User', role: 'ADMIN' },
+  'hr@rts.com': { id: '2', username: 'hr', email: 'hr@rts.com', fullName: 'HR Manager', role: 'HR_MANAGER' },
+  'recruiter@rts.com': { id: '3', username: 'recruiter', email: 'recruiter@rts.com', fullName: 'Recruiter User', role: 'RECRUITER' },
+  'interviewer@rts.com': { id: '4', username: 'interviewer', email: 'interviewer@rts.com', fullName: 'Interviewer User', role: 'INTERVIEWER' },
+};
+
+function mockLogin(identifier: string, password: string): { token: string; role: string } {
+  const user = MOCK_USERS[identifier.toLowerCase()];
+  if (!user || !password) throw new Error('Invalid credentials. Please try again.');
+  // Simulate a JWT-shaped token string
+  const fakeToken = btoa(JSON.stringify({ sub: user.id, role: user.role, exp: Date.now() + 7_200_000 }));
+  return { token: fakeToken, role: user.role };
+}
+
+// ── Component ──────────────────────────────────────────────────
+
+const LoginPage: React.FC = () => {
+  const [form, setForm] = useState<FormState>({
+    identifier: '',
+    password: '',
+    rememberMe: false,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+
+  const handleChange = (field: keyof FormState, value: string | boolean) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
+  };
+
+  const applyPreset = (preset: RolePreset) => {
+    setForm(prev => ({ ...prev, identifier: preset.identifier, password: 'Password@123' }));
+    setActivePreset(preset.identifier);
+    if (error) setError(null);
+  };
+
+  const validate = (): string | null => {
+    if (!form.identifier.trim()) return 'Email or username is required.';
+    if (!form.password) return 'Password is required.';
+    return null;
+  };
+
+  const handleSubmit = async () => {
+    const err = validate();
+    if (err) { setError(err); return; }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      let token: string;
+      let role: string;
+
+      if (USE_MOCK) {
+        // ── Mock path — no backend needed ──────────────────────
+        await new Promise(r => setTimeout(r, 600)); // simulate network delay
+        ({ token, role } = mockLogin(form.identifier.trim(), form.password));
+      } else {
+        // ── Real path — Spring Boot backend ────────────────────
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usernameOrEmail: form.identifier.trim(), password: form.password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Invalid credentials. Please try again.');
+        token = data.data.token;
+        role = data.data.role;
+      }
+
+      const storage = form.rememberMe ? localStorage : sessionStorage;
+      storage.setItem('rts_token', token);
+      storage.setItem('rts_role', role);
+
+      window.location.href = '/dashboard';
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSubmit();
+  };
+
+  // ── Render ─────────────────────────────────────────────────
+
+  return (
+    <div className="login-root">
+
+      {/* Left sidebar */}
+      <aside className="login-sidebar">
+        <div className="login-logo">
+          <div className="login-logo-mark">RTS</div>
+          <span className="login-logo-text">Recruitment Tracking System</span>
+        </div>
+
+        <div className="login-sidebar-body">
+          <h1 className="login-sidebar-title">
+            Manage your entire recruitment pipeline in one place.
+          </h1>
+          <p className="login-sidebar-desc">
+            Track candidates, schedule interviews, collect feedback, and generate reports — all from a single dashboard.
+          </p>
+
+          <div className="login-sidebar-stats">
+            <div className="login-stat">
+              <span className="login-stat-num">9</span>
+              <span className="login-stat-label">Pipeline stages</span>
+            </div>
+            <div className="login-stat">
+              <span className="login-stat-num">4</span>
+              <span className="login-stat-label">User roles</span>
+            </div>
+            <div className="login-stat">
+              <span className="login-stat-num">2</span>
+              <span className="login-stat-label">Interview rounds</span>
+            </div>
+          </div>
+        </div>
+
+        {/* <p className="login-sidebar-footer">© 2026 RTS · Internship Project</p> */}
+      </aside>
+
+      {/* Right form panel */}
+      <main className="login-main">
+        <div className="login-form-wrap">
+
+          <div className="login-form-header">
+            <p className="login-form-eyebrow">Welcome back</p>
+            <h2 className="login-form-title">Sign in</h2>
+            <p className="login-form-subtitle">Enter your credentials to continue.</p>
+          </div>
+
+          {USE_MOCK && (
+            <div style={{ marginBottom: '1rem', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, fontSize: '0.775rem', color: '#92400e' }}>
+              <strong>Mock mode on.</strong> Use any preset below or type a preset email with any password.
+            </div>
+          )}
+
+          <div className="login-card">
+            {error && (
+              <Alert
+                className="login-error"
+                type="error"
+                message={error}
+                showIcon
+                closable
+                onClose={() => setError(null)}
+              />
+            )}
+
+            <div className="login-field">
+              <label className="login-field-label" htmlFor="login-id">
+                Email or username
+              </label>
+              <Input
+                id="login-id"
+                className="login-input"
+                prefix={<UserOutlined />}
+                placeholder="you@company.com"
+                value={form.identifier}
+                onChange={e => handleChange('identifier', e.target.value)}
+                onKeyDown={onKeyDown}
+                autoComplete="username"
+                size="large"
+              />
+            </div>
+
+            <div className="login-field">
+              <label className="login-field-label" htmlFor="login-pwd">
+                Password
+              </label>
+              <Input.Password
+                id="login-pwd"
+                className="login-input"
+                prefix={<LockOutlined />}
+                placeholder="••••••••"
+                iconRender={v => v ? <EyeTwoTone /> : <EyeInvisibleOutlined />}
+                value={form.password}
+                onChange={e => handleChange('password', e.target.value)}
+                onKeyDown={onKeyDown}
+                autoComplete="current-password"
+                size="large"
+              />
+            </div>
+
+            <div className="login-row">
+              <label className="login-remember">
+                <Checkbox
+                  checked={form.rememberMe}
+                  onChange={e => handleChange('rememberMe', e.target.checked)}
+                />
+                Remember me
+              </label>
+              <a href="/forgot-password" className="login-forgot">Forgot password?</a>
+            </div>
+
+            <Button
+              className="login-btn"
+              type="primary"
+              size="large"
+              loading={loading}
+              onClick={handleSubmit}
+            >
+              {loading ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </div>
+
+          {/* Role quick-fill */}
+          <div className="login-divider">
+            <div className="login-divider-line" />
+            <span className="login-divider-text">Quick fill</span>
+            <div className="login-divider-line" />
+          </div>
+
+          <div className="login-role-pills">
+            {ROLE_PRESETS.map(p => (
+              <button
+                key={p.identifier}
+                type="button"
+                className={`login-role-pill ${activePreset === p.identifier ? 'active' : ''}`}
+                onClick={() => applyPreset(p)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* <p className="login-footer-note">
+            © 2026 Recruitment Tracking System ·{' '}
+            <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+          </p> */}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default LoginPage;

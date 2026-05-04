@@ -4,15 +4,23 @@ import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
 import com.rts.modules.candidate.application.CandidateService;
 import com.rts.modules.candidate.domain.Candidate;
+import com.rts.shared.kernel.RecruitmentStage;
 import com.rts.shared.response.ApiResponse;
+import com.rts.shared.response.PagedResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Candidates")
@@ -24,6 +32,24 @@ public class CandidateController {
 
     public CandidateController(CandidateService candidateService) {
         this.candidateService = candidateService;
+    }
+
+    @Operation(
+            summary = "List candidates (paginated)",
+            description = "Returns a page of non-deleted candidates. Optional filters: stage, position (contains, case-insensitive). "
+                    + "Sort via repeated `sort` params (e.g. sort=name,asc&sort=createdAt,desc). Allowed sort fields: "
+                    + "name, email, position, stage, createdAt, updatedAt. Default page size is 20."
+    )
+    @GetMapping
+    public ResponseEntity<ApiResponse<PagedResponse<CandidateResponse>>> list(
+            @Parameter(description = "Filter by recruitment stage")
+            @RequestParam(required = false) RecruitmentStage stage,
+            @Parameter(description = "Case-insensitive contains match on position title")
+            @RequestParam(required = false) String position,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        PagedResponse<CandidateResponse> page = candidateService.list(stage, position, pageable);
+        return ResponseEntity.ok(ApiResponse.success("Candidates retrieved successfully", page));
     }
 
     @Operation(summary = "Create candidate", description = "Creates a candidate with validation and UUID identity.")
