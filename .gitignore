@@ -1,5 +1,23 @@
 .DS_Store
 **/.DS_Store
+Thumbs.db
+
+.idea/
+*.iml
+
+**/node_modules/
+**/dist/
 **/target/
+
+*.log
+**/logs/
+
+.env
+.env.local
+.env.*.local
+
+coverage/
+*.tsbuildinfo
+
 backend/SRS DOC INFY.pdf
 backend/RTS Implementation Plan v2.pdf
