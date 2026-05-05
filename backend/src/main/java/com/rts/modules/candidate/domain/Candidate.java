@@ -28,6 +28,12 @@ public class Candidate extends BaseEntity {
     @Column(name = "stage", nullable = false, length = 50)
     private RecruitmentStage stage = RecruitmentStage.APPLICATION_RECEIVED;
 
+    @Column(name = "experience", length = 200)
+    private String experience;
+
+    @Column(name = "notes", length = 500)
+    private String notes;
+
     public String getName() {
         return name;
     }
@@ -66,5 +72,21 @@ public class Candidate extends BaseEntity {
 
     public void setStage(RecruitmentStage stage) {
         this.stage = stage;
+    }
+
+    public String getExperience() {
+        return experience;
+    }
+
+    public void setExperience(String experience) {
+        this.experience = experience;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

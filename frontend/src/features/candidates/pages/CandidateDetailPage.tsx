@@ -1,0 +1,261 @@
+import React, { useEffect, useState } from 'react';
+import { Button, message } from 'antd';
+import { ArrowLeftOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Candidate } from '../candidateTypes';
+import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
+import { Role } from '../../../constants/roles';
+import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
+import { mapApiRowToCandidate } from '../candidateApiMappers';
+import { mockGetCandidate } from '../candidateMock';
+import StatusBadge from '../../../shared/components/StatusBadge';
+import AuthenticatedCandidateAvatar from '../components/AuthenticatedCandidateAvatar';
+
+const s = {
+  root: { fontFamily: "'IBM Plex Sans', sans-serif", minHeight: '100vh', background: '#f9f9f8' },
+  nav: {
+    background: '#fff',
+    borderBottom: '1px solid #e4e4e0',
+    padding: '0 2rem',
+    height: 52,
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+  },
+  navBrand: { display: 'flex' as const, alignItems: 'center' as const, gap: 10 },
+  navMark: {
+    width: 28,
+    height: 28,
+    background: '#2563eb',
+    borderRadius: 4,
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    color: '#fff',
+    fontSize: '0.7rem',
+    fontWeight: 600 as const,
+  },
+  navLinks: { display: 'flex' as const, alignItems: 'center' as const, gap: 16 },
+  navLink: { fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' as const },
+  navBtn: {
+    fontSize: '0.85rem',
+    color: '#6b6b65',
+    background: 'none',
+    border: '1px solid #e4e4e0',
+    borderRadius: 6,
+    padding: '4px 12px',
+    cursor: 'pointer' as const,
+    fontFamily: 'inherit',
+  },
+  body: { maxWidth: 720, margin: '0 auto', padding: '2.5rem 2rem' },
+  backBtn: {
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    fontSize: '0.85rem',
+    color: '#6b6b65',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer' as const,
+    padding: 0,
+    marginBottom: '1.5rem',
+    fontFamily: 'inherit',
+  },
+  card: {
+    background: '#fff',
+    border: '1px solid #e4e4e0',
+    borderRadius: 12,
+    padding: '1.5rem',
+    marginBottom: '1rem',
+  },
+  title: { fontSize: '1.25rem', fontWeight: 600 as const, color: '#1a1a18', margin: '0 0 0.25rem' },
+  meta: { fontSize: '0.8rem', color: '#b0b0a8', marginBottom: '1.25rem' },
+  row: { marginBottom: '0.75rem', fontSize: '0.9rem' },
+  label: { color: '#6b6b65', fontWeight: 500 as const, marginRight: 8 },
+  actions: { display: 'flex' as const, gap: 8, flexWrap: 'wrap' as const, marginTop: '1.25rem' },
+  head: { display: 'flex' as const, alignItems: 'center' as const, gap: 16, marginBottom: '1rem' },
+};
+
+async function apiGetCandidate(id: string): Promise<Candidate> {
+  const res = await fetch(`/api/candidates/${id}`, { headers: basicAuthFetchHeaders(false) });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return mapApiRowToCandidate(data.data as Record<string, unknown>);
+}
+
+const CandidateDetailPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        let c: Candidate | null = null;
+        if (USE_CANDIDATE_MOCK) {
+          await new Promise(r => setTimeout(r, 200));
+          c = mockGetCandidate(id);
+        } else {
+          c = await apiGetCandidate(id);
+        }
+        if (cancelled) return;
+        if (!c) throw new Error('Candidate not found.');
+        setCandidate(c);
+      } catch (e: any) {
+        if (!cancelled) {
+          message.error(e?.message ?? 'Failed to load candidate.');
+          navigate('/candidates');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, navigate]);
+
+  const logout = () => {
+    ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    });
+    window.location.href = '/login';
+  };
+
+  const downloadResume = async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/candidates/${id}/resume`, { headers: basicAuthFetchHeaders(false) });
+      if (!res.ok) throw new Error('Could not download résumé.');
+      const blob = await res.blob();
+      const cd = res.headers.get('Content-Disposition');
+      let filename = 'resume';
+      if (cd) {
+        const m = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(cd);
+        if (m) filename = decodeURIComponent(m[1]!.replace(/["']/g, ''));
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      message.error(e?.message ?? 'Download failed.');
+    }
+  };
+
+  if (loading || !candidate) {
+    return (
+      <div style={{ ...s.root, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#b0b0a8' }}>Loading…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={s.root}>
+      <div style={s.nav}>
+        <div style={s.navBrand}>
+          <div style={s.navMark}>RTS</div>
+          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#6b6b65' }}>
+            Recruitment Tracking System
+          </span>
+        </div>
+        <div style={s.navLinks}>
+          <a href="/dashboard" style={s.navLink}>Dashboard</a>
+          <a href="/candidates" style={s.navLink}>Candidates</a>
+          {(localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role')) === Role.ADMIN && (
+            <a href="/admin/users" style={s.navLink}>Users</a>
+          )}
+          <a href="/profile" style={s.navLink}>Profile</a>
+          <button type="button" onClick={logout} style={s.navBtn}>Sign out</button>
+        </div>
+      </div>
+
+      <div style={s.body}>
+        <button type="button" style={s.backBtn} onClick={() => navigate('/candidates')}>
+          <ArrowLeftOutlined /> Back to candidates
+        </button>
+
+        <div style={s.card}>
+          <div style={s.head}>
+            {candidate.hasPhoto && !USE_CANDIDATE_MOCK ? (
+              <AuthenticatedCandidateAvatar candidateId={candidate.id} name={candidate.name} size={56} />
+            ) : candidate.photoUrl ? (
+              <img
+                src={candidate.photoUrl}
+                alt={candidate.name}
+                style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: '#eff4ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  color: '#2563eb',
+                }}
+              >
+                {candidate.name[0]?.toUpperCase() ?? '?'}
+              </div>
+            )}
+            <div>
+              <h1 style={s.title}>{candidate.name}</h1>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b6b65' }}>{candidate.email}</p>
+            </div>
+          </div>
+
+          <p style={s.meta}>
+            Applied {new Date(candidate.createdAt).toLocaleDateString('en-US', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </p>
+
+          <div style={s.row}><span style={s.label}>Phone</span>{candidate.phone}</div>
+          <div style={s.row}><span style={s.label}>Position</span>{candidate.position}</div>
+          <div style={s.row}><span style={s.label}>Experience</span>{candidate.experience || '—'}</div>
+          <div style={s.row}>
+            <span style={s.label}>Stage</span>
+            <StatusBadge stage={candidate.stage} />
+          </div>
+          {candidate.notes && (
+            <div style={{ ...s.row, marginTop: '1rem' }}>
+              <span style={{ ...s.label, display: 'block', marginBottom: 4 }}>Notes</span>
+              <span style={{ color: '#1a1a18', whiteSpace: 'pre-wrap' as const }}>{candidate.notes}</span>
+            </div>
+          )}
+
+          <div style={s.actions}>
+            <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/candidates/${id}/edit`)}>
+              Edit
+            </Button>
+            {candidate.hasResume && !USE_CANDIDATE_MOCK && (
+              <Button icon={<DownloadOutlined />} onClick={downloadResume}>
+                Download résumé
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CandidateDetailPage;

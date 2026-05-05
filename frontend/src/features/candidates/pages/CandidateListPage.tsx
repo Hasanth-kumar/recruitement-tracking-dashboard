@@ -23,21 +23,33 @@ import {
 } from '../candidateMock';
 import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
+import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
+import { mapApiRowToCandidate, PagedResponseApi } from '../candidateApiMappers';
 
-// ── Mock flag ───────────────────────────────────────────────────
-const USE_MOCK = true;
+const USE_MOCK = USE_CANDIDATE_MOCK;
 
 const PAGE_SIZE = 20;
 
 // ── API helpers (real path) ─────────────────────────────────────
 
 async function apiFetchCandidates(): Promise<Candidate[]> {
- const res  = await fetch('/api/candidates', {
-   headers: basicAuthFetchHeaders(false),
- });
- const data = await res.json();
- if (!data.success) throw new Error(data.message);
- return data.data;
+ const all: Candidate[] = [];
+ let page = 0;
+ for (;;) {
+   const res = await fetch(
+     `/api/candidates?page=${page}&size=100&sort=createdAt,desc`,
+     { headers: basicAuthFetchHeaders(false) },
+   );
+   const data = await res.json();
+   if (!data.success) throw new Error(data.message);
+   const paged = data.data as PagedResponseApi<Record<string, unknown>>;
+   for (const row of paged.content) {
+     all.push(mapApiRowToCandidate(row));
+   }
+   if (paged.last) break;
+   page += 1;
+ }
+ return all;
 }
 
 async function apiUpdateStage(id: string, stage: RecruitmentStage): Promise<void> {

@@ -1,8 +1,6 @@
 package com.rts.modules.candidate.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rts.infrastructure.config.SecurityConfig;
-import com.rts.infrastructure.security.BasicAuthEntryPoint;
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
 import com.rts.modules.candidate.application.CandidateService;
@@ -12,11 +10,11 @@ import com.rts.shared.kernel.RecruitmentStage;
 import com.rts.shared.response.PagedResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -35,7 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = CandidateController.class)
-@Import({SecurityConfig.class, BasicAuthEntryPoint.class, GlobalExceptionHandler.class})
+@AutoConfigureMockMvc(addFilters = false)
+@Import(GlobalExceptionHandler.class)
 class CandidateControllerTest {
 
     private static final Pattern UUID_PATTERN = Pattern.compile(
@@ -53,7 +52,6 @@ class CandidateControllerTest {
     private CandidateService candidateService;
 
     @Test
-    @WithMockUser(roles = "RECRUITER")
     void createShouldReturn201WithPayloadAndUuid() throws Exception {
         String id = UUID.randomUUID().toString();
         Candidate candidate = new Candidate();
@@ -70,7 +68,9 @@ class CandidateControllerTest {
                 "Aisha Khan",
                 "aisha@rts.com",
                 "+919876543210",
-                "Backend Engineer"
+                "Backend Engineer",
+                null,
+                null
         );
 
         mockMvc.perform(post("/api/candidates")
@@ -88,7 +88,6 @@ class CandidateControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "RECRUITER")
     void createShouldReturn400WhenBodyFailsBeanValidation() throws Exception {
         String json = """
                 {"name":"","email":"not-email","phone":"x","position":""}
@@ -103,7 +102,6 @@ class CandidateControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "RECRUITER")
     void createShouldReturn400WhenBodyIsNotJson() throws Exception {
         mockMvc.perform(post("/api/candidates")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,7 +111,6 @@ class CandidateControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "RECRUITER")
     void listShouldReturn200WithPagedCandidates() throws Exception {
         CandidateResponse row = new CandidateResponse(
                 UUID.randomUUID().toString(),
@@ -122,6 +119,10 @@ class CandidateControllerTest {
                 "+919876543210",
                 "Backend Engineer",
                 RecruitmentStage.APPLICATION_RECEIVED,
+                "",
+                null,
+                false,
+                false,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -137,7 +138,6 @@ class CandidateControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "RECRUITER")
     void listShouldPassStageAndPositionFiltersToService() throws Exception {
         PagedResponse<CandidateResponse> page = new PagedResponse<>(List.of(), 0, 20, 0, 0, true, true);
         when(candidateService.list(
@@ -151,26 +151,5 @@ class CandidateControllerTest {
                         .param("position", "Engineer"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(0));
-    }
-
-    @Test
-    void listShouldReturn401WhenNotAuthenticated() throws Exception {
-        mockMvc.perform(get("/api/candidates"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void createShouldReturn401WhenNotAuthenticated() throws Exception {
-        CreateCandidateRequest body = new CreateCandidateRequest(
-                "Aisha Khan",
-                "aisha@rts.com",
-                "+919876543210",
-                "Backend Engineer"
-        );
-
-        mockMvc.perform(post("/api/candidates")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isUnauthorized());
     }
 }

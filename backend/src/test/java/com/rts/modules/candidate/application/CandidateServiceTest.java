@@ -3,6 +3,8 @@ package com.rts.modules.candidate.application;
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
 import com.rts.modules.candidate.domain.Candidate;
+import com.rts.modules.candidate.domain.CandidateDocumentType;
+import com.rts.modules.candidate.persistence.CandidateDocumentRepository;
 import com.rts.modules.candidate.persistence.CandidateRepository;
 import com.rts.shared.exception.ConflictException;
 import com.rts.shared.kernel.RecruitmentStage;
@@ -25,6 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,11 +38,18 @@ class CandidateServiceTest {
     @Mock
     private CandidateRepository candidateRepository;
 
+    @Mock
+    private CandidateDocumentRepository candidateDocumentRepository;
+
     private CandidateService candidateService;
 
     @BeforeEach
     void setUp() {
-        candidateService = new CandidateService(candidateRepository);
+        candidateService = new CandidateService(candidateRepository, candidateDocumentRepository);
+        lenient().when(candidateDocumentRepository.findCandidateIdsWithDocumentType(
+                any(CandidateDocumentType.class),
+                anyCollection()
+        )).thenReturn(List.of());
     }
 
     @Test
@@ -47,7 +58,9 @@ class CandidateServiceTest {
                 "  Aisha Khan  ",
                 "  AISHA@RTS.COM  ",
                 "  +919876543210  ",
-                "  Backend Engineer  "
+                "  Backend Engineer  ",
+                null,
+                null
         );
         when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalse("aisha@rts.com")).thenReturn(false);
         when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> {
@@ -73,7 +86,9 @@ class CandidateServiceTest {
                 "Aisha Khan",
                 "aisha@rts.com",
                 "+919876543210",
-                "Backend Engineer"
+                "Backend Engineer",
+                null,
+                null
         );
         when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalse("aisha@rts.com")).thenReturn(true);
 

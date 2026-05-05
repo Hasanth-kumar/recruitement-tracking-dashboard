@@ -37,7 +37,9 @@ class CreateCandidateRequestValidationTest {
                 "Aisha Khan",
                 "aisha@rts.com",
                 "+919876543210",
-                "Backend Engineer"
+                "Backend Engineer",
+                "3 - 5 years",
+                "Notes here"
         );
         assertThat(validator.validate(request)).isEmpty();
     }
@@ -48,7 +50,9 @@ class CreateCandidateRequestValidationTest {
                 "   ",
                 "aisha@rts.com",
                 "+919876543210",
-                "Backend Engineer"
+                "Backend Engineer",
+                null,
+                null
         );
         assertThat(propertyPaths(validator.validate(request))).contains("name");
     }
@@ -59,7 +63,9 @@ class CreateCandidateRequestValidationTest {
                 "Aisha Khan",
                 "not-an-email",
                 "+919876543210",
-                "Backend Engineer"
+                "Backend Engineer",
+                null,
+                null
         );
         assertThat(propertyPaths(validator.validate(request))).contains("email");
     }
@@ -70,7 +76,9 @@ class CreateCandidateRequestValidationTest {
                 "Aisha Khan",
                 "   ",
                 "+919876543210",
-                "Backend Engineer"
+                "Backend Engineer",
+                null,
+                null
         );
         assertThat(propertyPaths(validator.validate(request))).contains("email");
     }
@@ -81,7 +89,9 @@ class CreateCandidateRequestValidationTest {
                 "Aisha Khan",
                 "aisha@rts.com",
                 "short",
-                "Backend Engineer"
+                "Backend Engineer",
+                null,
+                null
         );
         assertThat(propertyPaths(validator.validate(request))).contains("phone");
     }
@@ -92,7 +102,9 @@ class CreateCandidateRequestValidationTest {
                 "Aisha Khan",
                 "aisha@rts.com",
                 "+919876543210",
-                ""
+                "",
+                null,
+                null
         );
         assertThat(propertyPaths(validator.validate(request))).contains("position");
     }
@@ -104,7 +116,9 @@ class CreateCandidateRequestValidationTest {
                 longName,
                 "a@b.co",
                 "+919876543210",
-                "Engineer"
+                "Engineer",
+                null,
+                null
         );
         assertThat(propertyPaths(validator.validate(request))).contains("name");
     }

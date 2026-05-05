@@ -4,7 +4,7 @@
 // US-3: Upload candidate photo (JPG/PNG, max 2MB)
 // US-6: Edit existing candidate (prefilled form)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input, Button, Alert, Select, message } from 'antd';
 import {
  ArrowLeftOutlined,
@@ -16,7 +16,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import PhotoUpload from '../components/PhotoUpload';
 import ResumeUpload from '../components/ResumeUpload';
-import { CandidateFormValues, POSITIONS, EXPERIENCE_LEVELS } from '../candidateTypes';
+import { Candidate, CandidateFormValues, POSITIONS, EXPERIENCE_LEVELS } from '../candidateTypes';
 import {
  mockCreateCandidate,
  mockGetCandidate,
@@ -26,20 +26,20 @@ import {
 } from '../candidateMock';
 import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
+import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
+import { mapApiRowToCandidate } from '../candidateApiMappers';
 
-// ── Mock flag ───────────────────────────────────────────────────
-// Set to false when Spring Boot backend is running
-const USE_MOCK = false;
+const USE_MOCK = USE_CANDIDATE_MOCK;
 
 // ── API helpers (real path) ─────────────────────────────────────
 
-async function apiGetCandidate(id: string) {
+async function apiGetCandidate(id: string): Promise<Candidate> {
  const res = await fetch(`/api/candidates/${id}`, {
    headers: basicAuthFetchHeaders(false),
  });
  const data = await res.json();
  if (!data.success) throw new Error(data.message);
- return data.data;
+ return mapApiRowToCandidate(data.data as Record<string, unknown>);
 }
 
 async function apiCreateCandidate(payload: object) {
@@ -66,7 +66,7 @@ async function apiUpdateCandidate(id: string, payload: object) {
 
 async function apiUploadPhoto(id: string, file: File) {
  const fd = new FormData();
- fd.append('photo', file);
+ fd.append('file', file);
  const res = await fetch(`/api/candidates/${id}/photo`, {
    method: 'POST',
    headers: basicAuthFetchHeaders(false),
@@ -78,7 +78,7 @@ async function apiUploadPhoto(id: string, file: File) {
 
 async function apiUploadResume(id: string, file: File) {
  const fd = new FormData();
- fd.append('resume', file);
+ fd.append('file', file);
  const res = await fetch(`/api/candidates/${id}/resume`, {
    method: 'POST',
    headers: basicAuthFetchHeaders(false),
@@ -154,43 +154,81 @@ const CandidateFormPage: React.FC = () => {
  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
  const [resumeFile,   setResumeFile]   = useState<File | null>(null);
  const [resumeName,   setResumeName]   = useState<string | null>(null);
+ const photoBlobRef = useRef<string | null>(null);
 
  // ── Load candidate for edit mode ──────────────────────────────
  useEffect(() => {
    if (!isEdit || !id) return;
 
+   let cancelled = false;
+
    const load = async () => {
      setLoading(true);
+     if (photoBlobRef.current) {
+       URL.revokeObjectURL(photoBlobRef.current);
+       photoBlobRef.current = null;
+     }
      try {
-       let candidate;
+       let candidate: Candidate;
 
        if (USE_MOCK) {
          await new Promise(r => setTimeout(r, 300));
-         candidate = mockGetCandidate(id);
-         if (!candidate) throw new Error('Candidate not found.');
+         const found = mockGetCandidate(id);
+         if (!found) throw new Error('Candidate not found.');
+         candidate = found;
        } else {
          candidate = await apiGetCandidate(id);
        }
+
+       if (cancelled) return;
 
        setForm({
          name:       candidate.name,
          email:      candidate.email,
          phone:      candidate.phone,
          position:   candidate.position,
-         experience: candidate.experience,
+         experience: candidate.experience ?? '',
          notes:      candidate.notes ?? '',
        });
-       if (candidate.photoUrl)  setPhotoPreview(candidate.photoUrl);
-       if (candidate.resumeUrl) setResumeName(candidate.resumeUrl.split('/').pop() ?? 'resume');
+
+       if (USE_MOCK) {
+         if (candidate.photoUrl) setPhotoPreview(candidate.photoUrl);
+         if (candidate.resumeUrl) setResumeName(candidate.resumeUrl.split('/').pop() ?? 'resume');
+       } else {
+         if (candidate.hasPhoto) {
+           const res = await fetch(`/api/candidates/${id}/photo`, {
+             headers: basicAuthFetchHeaders(false),
+           });
+           if (res.ok && !cancelled) {
+             const blob = await res.blob();
+             const url = URL.createObjectURL(blob);
+             photoBlobRef.current = url;
+             setPhotoPreview(url);
+           }
+         } else {
+           setPhotoPreview(null);
+         }
+         if (candidate.hasResume) setResumeName('Résumé on file');
+         else setResumeName(null);
+       }
      } catch (e: any) {
-       message.error(e?.message ?? 'Failed to load candidate.');
-       navigate('/candidates');
+       if (!cancelled) {
+         message.error(e?.message ?? 'Failed to load candidate.');
+         navigate('/candidates');
+       }
      } finally {
-       setLoading(false);
+       if (!cancelled) setLoading(false);
      }
    };
 
    load();
+   return () => {
+     cancelled = true;
+     if (photoBlobRef.current) {
+       URL.revokeObjectURL(photoBlobRef.current);
+       photoBlobRef.current = null;
+     }
+   };
  }, [id, isEdit, navigate]);
 
  // ── Field change ──────────────────────────────────────────────

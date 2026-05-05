@@ -8,6 +8,7 @@ import AdminUsersPage from './features/auth/pages/AdminUsersPage';
 import ProfilePage from './features/auth/components/ProfilePage';
 import CandidateListPage from './features/candidates/pages/CandidateListPage';
 import CandidateFormPage from './features/candidates/pages/CandidateFormPage';
+import CandidateDetailPage from './features/candidates/pages/CandidateDetailPage';
 import { Role } from './constants/roles';
 import { useAuth } from './shared/hooks/useAuth';
 
@@ -101,6 +102,7 @@ const App: React.FC = () => {
         <Route path="/candidates" element={<ProtectedRoute><CandidateListPage /></ProtectedRoute>} />
         <Route path="/candidates/new" element={<ProtectedRoute><CandidateFormPage /></ProtectedRoute>} />
         <Route path="/candidates/:id/edit" element={<ProtectedRoute><CandidateFormPage /></ProtectedRoute>} />
+        <Route path="/candidates/:id" element={<ProtectedRoute><CandidateDetailPage /></ProtectedRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />

@@ -6,9 +6,13 @@ import com.rts.modules.candidate.domain.CandidateDocument;
 import com.rts.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,5 +57,27 @@ public class DocumentController {
         CandidateDocument document = documentService.uploadPhoto(candidateId, file);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Photo uploaded successfully", DocumentUploadResponse.from(document)));
+    }
+
+    @Operation(summary = "Download candidate photo", description = "Returns the stored photo bytes (JPG/PNG).")
+    @GetMapping(path = "/{id}/photo")
+    public ResponseEntity<Resource> downloadPhoto(@PathVariable("id") String candidateId) {
+        DocumentService.ServedDocument served = documentService.loadPhoto(candidateId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(served.contentType()))
+                .body(served.resource());
+    }
+
+    @Operation(summary = "Download candidate resume", description = "Returns the stored resume file.")
+    @GetMapping(path = "/{id}/resume")
+    public ResponseEntity<Resource> downloadResume(@PathVariable("id") String candidateId) {
+        DocumentService.ServedDocument served = documentService.loadResume(candidateId);
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(served.originalFileName(), java.nio.charset.StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(MediaType.parseMediaType(served.contentType()))
+                .body(served.resource());
     }
 }

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record CreateCandidateRequest(
+public record UpdateCandidateRequest(
         @NotBlank(message = "Name is required")
         @Size(max = 150, message = "Name cannot exceed 150 characters")
         String name,

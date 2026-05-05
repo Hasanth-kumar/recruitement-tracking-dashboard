@@ -6,6 +6,8 @@ import com.rts.modules.candidate.domain.CandidateDocumentType;
 import com.rts.modules.candidate.persistence.CandidateDocumentRepository;
 import com.rts.modules.candidate.persistence.CandidateRepository;
 import com.rts.shared.exception.ResourceNotFoundException;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import com.rts.shared.exception.ValidationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -236,5 +238,32 @@ public class DocumentService {
             throw new ValidationException("File extension is required");
         }
         return filename.substring(lastDotIndex + 1).toLowerCase(Locale.ROOT);
+    }
+
+    public record ServedDocument(Resource resource, String contentType, String originalFileName) {
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
+    @Transactional(readOnly = true)
+    public ServedDocument loadPhoto(String candidateId) {
+        return loadDocument(candidateId, CandidateDocumentType.PHOTO);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
+    @Transactional(readOnly = true)
+    public ServedDocument loadResume(String candidateId) {
+        return loadDocument(candidateId, CandidateDocumentType.RESUME);
+    }
+
+    private ServedDocument loadDocument(String candidateId, CandidateDocumentType type) {
+        CandidateDocument document = candidateDocumentRepository
+                .findByCandidateIdAndDocumentTypeAndDeletedFalse(candidateId, type)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found for candidate: " + candidateId));
+        Path path = Path.of(document.getFilePath()).normalize();
+        if (!path.startsWith(uploadRootPath) || !Files.isRegularFile(path)) {
+            throw new ResourceNotFoundException("Document file not found for candidate: " + candidateId);
+        }
+        Resource resource = new FileSystemResource(path);
+        return new ServedDocument(resource, document.getContentType(), document.getOriginalFileName());
     }
 }

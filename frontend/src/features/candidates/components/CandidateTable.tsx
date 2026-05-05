@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Candidate } from '../candidateTypes';
 import StatusBadge from '../../../shared/components/StatusBadge';
+import AuthenticatedCandidateAvatar from './AuthenticatedCandidateAvatar';
 
 // ── Types ───────────────────────────────────────────────────────
 export type SortField = 'name' | 'position' | 'stage' | 'createdAt';
@@ -167,9 +168,11 @@ const CandidateTable: React.FC<Props> = ({
                    {/* Name + email */}
                    <td style={rowTd}>
                      <div style={s.nameWrap}>
-                       {c.photoUrl
-                         ? <img src={c.photoUrl} alt={c.name} style={s.avatar} />
-                         : <div style={s.avatarFb}>{c.name[0].toUpperCase()}</div>
+                       {c.hasPhoto
+                         ? <AuthenticatedCandidateAvatar candidateId={c.id} name={c.name} size={34} />
+                         : c.photoUrl
+                           ? <img src={c.photoUrl} alt={c.name} style={s.avatar} />
+                           : <div style={s.avatarFb}>{c.name[0].toUpperCase()}</div>
                        }
                        <div>
                          <p style={s.nameText}>{c.name}</p>

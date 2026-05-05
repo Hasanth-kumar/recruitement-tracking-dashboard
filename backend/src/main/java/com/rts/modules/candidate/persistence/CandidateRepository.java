@@ -10,5 +10,7 @@ public interface CandidateRepository extends JpaRepository<Candidate, String>, J
 
     boolean existsByEmailIgnoreCaseAndDeletedFalse(String email);
 
+    boolean existsByEmailIgnoreCaseAndDeletedFalseAndIdNot(String email, String id);
+
     Optional<Candidate> findByIdAndDeletedFalse(String id);
 }
