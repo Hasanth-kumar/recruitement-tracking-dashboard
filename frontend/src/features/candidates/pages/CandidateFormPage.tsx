@@ -1,9 +1,3 @@
-// src/features/candidates/pages/CandidateFormPage.tsx
-// US-1: Add new candidate
-// US-2: Upload resume (PDF/DOC/DOCX, max 5MB)
-// US-3: Upload candidate photo (JPG/PNG, max 2MB)
-// US-6: Edit existing candidate (prefilled form)
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Input, Button, Alert, Select, message } from 'antd';
 import {
@@ -16,6 +10,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import PhotoUpload from '../components/PhotoUpload';
 import ResumeUpload from '../components/ResumeUpload';
+import AppLayout from '../../../shared/components/AppLayout';
 import { Candidate, CandidateFormValues, POSITIONS, EXPERIENCE_LEVELS } from '../candidateTypes';
 import {
  mockCreateCandidate,
@@ -28,6 +23,7 @@ import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
 import { mapApiRowToCandidate } from '../candidateApiMappers';
+import '../../../App.css';
 
 const USE_MOCK = USE_CANDIDATE_MOCK;
 
@@ -102,40 +98,8 @@ function validate(
  if (!form.phone.trim())                 errors.phone      = 'Phone number is required.';
  else if (!PHONE_REGEX.test(form.phone)) errors.phone      = 'Enter a valid phone number.';
  if (!form.position)                     errors.position   = 'Position is required.';
-//  if (!form.experience)                   errors.experience = 'Experience level is required.';
  return errors;
 }
-
-// ── Styles ──────────────────────────────────────────────────────
-const s = {
- root:      { fontFamily: "'IBM Plex Sans', sans-serif", minHeight: '100vh', background: '#f9f9f8' },
- nav:       { background: '#fff', borderBottom: '1px solid #e4e4e0', padding: '0 2rem', height: 52, display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
- navBrand:  { display: 'flex' as const, alignItems: 'center' as const, gap: 10 },
- navMark:   { width: 28, height: 28, background: '#2563eb', borderRadius: 4, display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const, color: '#fff', fontSize: '0.7rem', fontWeight: 600 as const },
- navLinks:  { display: 'flex' as const, alignItems: 'center' as const, gap: 16 },
- navLink:   { fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' as const },
- navBtn:    { fontSize: '0.85rem', color: '#6b6b65', background: 'none', border: '1px solid #e4e4e0', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' as const, fontFamily: 'inherit' },
- body:      { maxWidth: 800, margin: '0 auto', padding: '2.5rem 2rem' },
- backBtn:   { display: 'flex' as const, alignItems: 'center' as const, gap: 6, fontSize: '0.85rem', color: '#6b6b65', background: 'none', border: 'none', cursor: 'pointer' as const, padding: 0, marginBottom: '1.5rem', fontFamily: 'inherit' },
- header:    { marginBottom: '2rem', paddingBottom: '1.25rem', borderBottom: '1px solid #e4e4e0' },
- eyebrow:   { fontSize: '0.72rem', fontWeight: 500 as const, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: '#b0b0a8', marginBottom: 4 },
- title:     { fontSize: '1.35rem', fontWeight: 600 as const, color: '#1a1a18', margin: 0 },
- layout:    { display: 'grid' as const, gridTemplateColumns: '1fr 210px', gap: '1.75rem', alignItems: 'start' as const },
- card:      { background: '#fff', border: '1px solid #e4e4e0', borderRadius: 12, padding: '1.5rem', marginBottom: '1.1rem' },
- cardTitle: { fontSize: '0.9rem', fontWeight: 600 as const, color: '#1a1a18', marginBottom: 3 },
- cardDesc:  { fontSize: '0.8rem', color: '#b0b0a8', marginBottom: '1.25rem', marginTop: 0 },
- grid2:     { display: 'grid' as const, gridTemplateColumns: '1fr 1fr', gap: '1rem' },
- field:     { display: 'flex' as const, flexDirection: 'column' as const, gap: 5 },
- fieldFull: { display: 'flex' as const, flexDirection: 'column' as const, gap: 5, gridColumn: '1 / -1' as const },
- label:     { fontSize: '0.8rem', fontWeight: 500 as const, color: '#6b6b65' },
- req:       { color: '#dc2626', marginLeft: 2 },
- errText:   { fontSize: '0.73rem', color: '#dc2626', marginTop: 2, marginBottom: 0 },
- sideCard:  { background: '#fff', border: '1px solid #e4e4e0', borderRadius: 12, padding: '1.5rem', display: 'flex' as const, flexDirection: 'column' as const, alignItems: 'center' as const, gap: '1rem', position: 'sticky' as const, top: '1.5rem' },
- sideTitle: { fontSize: '0.875rem', fontWeight: 600 as const, color: '#1a1a18', alignSelf: 'flex-start' as const, margin: 0 },
- sideDivider: { width: '100%', height: 1, background: '#f0f0ed' },
- sideHint:  { fontSize: '0.72rem', color: '#b0b0a8', textAlign: 'center' as const, margin: 0, lineHeight: 1.5 },
- actions:   { display: 'flex' as const, gap: '0.6rem', marginTop: '0.25rem' },
-};
 
 // ── Component ───────────────────────────────────────────────────
 const CandidateFormPage: React.FC = () => {

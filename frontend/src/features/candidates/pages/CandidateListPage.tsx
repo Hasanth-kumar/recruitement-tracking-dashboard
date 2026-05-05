@@ -1,9 +1,3 @@
-// src/features/candidates/pages/CandidateListPage.tsx
-// US-4: Paginated candidate list with search, sort, filter
-// US-7: Soft delete
-// US-8: Single stage update
-// US-10: Bulk stage update
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button, message, Pagination } from 'antd';
 import { PlusOutlined, AppstoreOutlined } from '@ant-design/icons';
@@ -14,6 +8,7 @@ import CandidateFilterPanel, { FilterState, EMPTY_FILTER } from '../components/C
 import CandidateTable, { SortField, SortState } from '../components/CandidateTable';
 import StageUpdateModal from '../components/StageUpdateModal';
 import BulkStageModal from '../components/BulkStageModal';
+import AppLayout from '../../../shared/components/AppLayout';
 
 import { Candidate, RecruitmentStage } from '../candidateTypes';
 import {
@@ -26,6 +21,7 @@ import { Role } from '../../../constants/roles';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
 import { mapApiRowToCandidate, PagedResponseApi } from '../candidateApiMappers';
 import { useAuth } from '../../../shared/hooks/useAuth';
+import '../../../App.css';
 
 const USE_MOCK = USE_CANDIDATE_MOCK;
 
@@ -71,27 +67,6 @@ async function apiDeleteCandidate(id: string): Promise<void> {
  const data = await res.json();
  if (!data.success) throw new Error(data.message);
 }
-
-// ── Styles ──────────────────────────────────────────────────────
-const s = {
- root:       { fontFamily: "'IBM Plex Sans', sans-serif", minHeight: '100vh', background: '#f9f9f8' },
- nav:        { background: '#fff', borderBottom: '1px solid #e4e4e0', padding: '0 2rem', height: 52, display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
- navBrand:   { display: 'flex' as const, alignItems: 'center' as const, gap: 10 },
- navMark:    { width: 28, height: 28, background: '#2563eb', borderRadius: 4, display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const, color: '#fff', fontSize: '0.7rem', fontWeight: 600 as const },
- navLinks:   { display: 'flex' as const, alignItems: 'center' as const, gap: 16 },
- navLink:    { fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' as const },
- navBtn:     { fontSize: '0.85rem', color: '#6b6b65', background: 'none', border: '1px solid #e4e4e0', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' as const, fontFamily: 'inherit' },
- body:       { maxWidth: 1100, margin: '0 auto', padding: '2.5rem 2rem' },
- pageHeader: { display: 'flex' as const, alignItems: 'flex-start' as const, justifyContent: 'space-between' as const, marginBottom: '1.75rem', paddingBottom: '1.25rem', borderBottom: '1px solid #e4e4e0' },
- eyebrow:    { fontSize: '0.72rem', fontWeight: 500 as const, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: '#b0b0a8', marginBottom: 4 },
- pageTitle:  { fontSize: '1.35rem', fontWeight: 600 as const, color: '#1a1a18', margin: 0 },
- toolbar:    { display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, flexWrap: 'wrap' as const, gap: '0.75rem', marginBottom: '1rem' },
- toolbarLeft:  { display: 'flex' as const, alignItems: 'center' as const, gap: 10, flexWrap: 'wrap' as const },
- toolbarRight: { display: 'flex' as const, alignItems: 'center' as const, gap: 8 },
- bulkBar:    { display: 'flex' as const, alignItems: 'center' as const, gap: 10, padding: '8px 14px', background: '#eff4ff', border: '1px solid #bfdbfe', borderRadius: 8, marginBottom: '1rem', fontSize: '0.85rem', color: '#2563eb' },
- meta:       { fontSize: '0.8rem', color: '#b0b0a8', marginBottom: '0.75rem' },
- pagination: { display: 'flex' as const, justifyContent: 'flex-end' as const, marginTop: '1.25rem' },
-};
 
 // ── Component ───────────────────────────────────────────────────
 const CandidateListPage: React.FC = () => {
@@ -261,42 +236,15 @@ const CandidateListPage: React.FC = () => {
 
  const selectedCandidates = allCandidates.filter(c => selectedIds.includes(c.id));
 
- const logout = () => {
-   ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
-     localStorage.removeItem(k); sessionStorage.removeItem(k);
-   });
-   window.location.href = '/login';
- };
-
  // ── Render ────────────────────────────────────────────────────
  return (
-   <div style={s.root}>
-
-     {/* Nav */}
-     <div style={s.nav}>
-       <div style={s.navBrand}>
-         <div style={s.navMark}>RTS</div>
-         <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#6b6b65' }}>
-           Recruitment Tracking System
-         </span>
-       </div>
-       <div style={s.navLinks}>
-         <a href="/dashboard" style={s.navLink}>Dashboard</a>
-         {(localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role')) === Role.ADMIN && (
-           <a href="/admin/users" style={s.navLink}>Users</a>
-         )}
-         <a href="/profile"   style={s.navLink}>Profile</a>
-         <button onClick={logout} style={s.navBtn}>Sign out</button>
-       </div>
-     </div>
-
-     <div style={s.body}>
-
+   <AppLayout>
+     <div className="candidates-root">
        {/* Page header */}
-       <div style={s.pageHeader}>
+       <div className="candidates-page-header">
          <div>
-           <p style={s.eyebrow}>Recruitment</p>
-           <h2 style={s.pageTitle}>Candidates</h2>
+           <p className="candidates-eyebrow">Recruitment</p>
+           <h2 className="candidates-page-title">Candidates</h2>
          </div>
         {canManageCandidates && (
           <Button
@@ -311,8 +259,8 @@ const CandidateListPage: React.FC = () => {
        </div>
 
        {/* Toolbar — search + filters */}
-       <div style={s.toolbar}>
-         <div style={s.toolbarLeft}>
+       <div className="candidates-toolbar">
+         <div className="candidates-toolbar-left">
            <CandidateSearchBar value={search} onChange={setSearch} />
            <CandidateFilterPanel
              filters={filters}
@@ -321,13 +269,12 @@ const CandidateListPage: React.FC = () => {
              activeCount={activeFilterCount}
            />
          </div>
-         <div style={s.toolbarRight}>
+         <div className="candidates-toolbar-right">
            {/* Reload */}
            <Button
              icon={<AppstoreOutlined />}
              onClick={loadCandidates}
              loading={loading}
-             style={{ fontSize: '0.825rem' }}
            >
              Refresh
            </Button>
@@ -336,7 +283,7 @@ const CandidateListPage: React.FC = () => {
 
        {/* Bulk action bar — appears when rows are selected */}
       {canManageCandidates && selectedIds.length > 0 && (
-         <div style={s.bulkBar}>
+         <div className="candidates-bulk-bar">
            <span>
              <strong>{selectedIds.length}</strong> candidate{selectedIds.length !== 1 ? 's' : ''} selected
            </span>
@@ -344,14 +291,12 @@ const CandidateListPage: React.FC = () => {
              size="small"
              type="primary"
              onClick={() => setBulkModalOpen(true)}
-             style={{ marginLeft: 8 }}
            >
              Update stage
            </Button>
            <Button
              size="small"
              onClick={() => setSelectedIds([])}
-             style={{ marginLeft: 4 }}
            >
              Clear selection
            </Button>
@@ -359,7 +304,7 @@ const CandidateListPage: React.FC = () => {
        )}
 
        {/* Result count */}
-       <p style={s.meta}>
+       <p className="candidates-meta">
          {loading
            ? 'Loading…'
            : `${filtered.length} candidate${filtered.length !== 1 ? 's' : ''}${
@@ -382,7 +327,7 @@ const CandidateListPage: React.FC = () => {
 
        {/* Pagination — US-4: 20 per page */}
        {filtered.length > PAGE_SIZE && (
-         <div style={s.pagination}>
+         <div className="candidates-pagination">
            <Pagination
              current={page}
              total={filtered.length}
@@ -411,9 +356,8 @@ const CandidateListPage: React.FC = () => {
        onClose={() => setBulkModalOpen(false)}
        loading={bulkLoading}
      />
-   </div>
+   </AppLayout>
  );
 };
 
 export default CandidateListPage;
- 

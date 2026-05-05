@@ -648,22 +648,307 @@ a:hover { text-decoration: underline; }
  min-height: 60vh;
 }
 
-/* ── App shell (post-login) ────────────────────────────────── */
-.app-shell {
- display: grid;
- grid-template-columns: 220px 1fr;
+/* ── AppLayout ─────────────────────────────────────────────── */
+.app-layout {
+ display: flex;
  min-height: 100vh;
-}
-
-.app-sidebar {
- background: var(--surface);
- border-right: 1px solid var(--border);
-}
-
-.app-main {
  background: var(--bg);
+}
+
+.app-layout-sider {
+ background: var(--surface) !important;
+ border-right: 1px solid var(--border);
+ position: fixed;
+ left: 0;
+ top: 0;
+ bottom: 0;
+ z-index: 999;
+}
+
+.ant-layout-sider-trigger {
+ background: var(--border-subtle) !important;
+ border-top: 1px solid var(--border);
+}
+
+.app-layout-logo {
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ padding: 1.25rem 1rem;
+ border-bottom: 1px solid var(--border);
+ margin-bottom: 1.5rem;
+}
+
+.app-layout-logo-mark {
+ width: 32px;
+ height: 32px;
+ background: var(--accent);
+ border-radius: var(--radius-sm);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 0.75rem;
+ font-weight: 600;
+ color: #fff;
+ font-family: var(--font-mono);
+ flex-shrink: 0;
+}
+
+.app-layout-logo-text {
+ font-size: 0.875rem;
+ font-weight: 600;
+ color: var(--text-primary);
+}
+
+.app-layout-menu {
+ padding: 0 0.5rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.25rem;
+}
+
+.app-layout-menu-item {
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ padding: 0.75rem 1rem;
+ border-radius: var(--radius-md);
+ color: var(--text-secondary);
+ cursor: pointer;
+ transition: all var(--transition);
+ font-size: 0.875rem;
+ font-weight: 500;
+ user-select: none;
+}
+
+.app-layout-menu-item:hover {
+ background: var(--accent-subtle);
+ color: var(--accent);
+}
+
+.app-layout-menu-item.active {
+ background: var(--accent-subtle);
+ color: var(--accent);
+ border-left: 3px solid var(--accent);
+ padding-left: calc(1rem - 3px);
+}
+
+.app-layout-menu-icon {
+ font-size: 1rem;
+ flex-shrink: 0;
+}
+
+.app-layout-main {
+ flex: 1;
+ display: flex;
+ flex-direction: column;
+ margin-left: 200px;
+ transition: margin-left 0.2s ease;
+}
+
+.ant-layout-sider-collapsed ~ .app-layout-main {
+ margin-left: 80px;
+}
+
+.app-layout-header {
+ background: var(--surface) !important;
+ border-bottom: 1px solid var(--border);
+ height: 60px !important;
+ padding: 0 1.5rem !important;
+ display: flex !important;
+ align-items: center;
+ gap: 1rem;
+ box-shadow: var(--shadow-sm);
+}
+
+.app-layout-toggle {
+ color: var(--text-secondary) !important;
+ font-size: 1rem;
+}
+
+.app-layout-toggle:hover {
+ color: var(--text-primary) !important;
+}
+
+.app-layout-header-spacer {
+ flex: 1;
+}
+
+.app-layout-user-menu {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ cursor: pointer;
+}
+
+.app-layout-avatar {
+ background: var(--accent) !important;
+ color: #fff !important;
+ font-weight: 600;
+ font-size: 0.875rem;
+ width: 36px !important;
+ height: 36px !important;
+}
+
+.app-layout-user-info {
+ display: flex;
+ flex-direction: column;
+ gap: 2px;
+}
+
+.app-layout-user-name {
+ font-size: 0.875rem;
+ font-weight: 500;
+ color: var(--text-primary);
+}
+
+.app-layout-user-role {
+ font-size: 0.75rem;
+ color: var(--text-muted);
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+}
+
+.app-layout-content {
+ flex: 1;
  padding: 2rem;
  overflow-y: auto;
+ background: var(--bg);
+}
+
+/* ── Dashboard Page ────────────────────────────────────────── */
+.dashboard-root {
+ max-width: 900px;
+ margin: 0 auto;
+ animation: fadeUp 0.3s ease both;
+}
+
+.dashboard-header {
+ margin-bottom: 2.5rem;
+ padding-bottom: 1.5rem;
+ border-bottom: 1px solid var(--border);
+}
+
+.dashboard-eyebrow {
+ font-size: 0.72rem;
+ font-weight: 500;
+ letter-spacing: 0.1em;
+ text-transform: uppercase;
+ color: var(--text-muted);
+ margin-bottom: 0.5rem;
+}
+
+.dashboard-title {
+ font-size: 1.5rem;
+ font-weight: 600;
+ color: var(--text-primary);
+}
+
+.dashboard-content {
+ display: flex;
+ flex-direction: column;
+ gap: 1.5rem;
+}
+
+.dashboard-status-badge {
+ display: inline-block;
+ padding: 6px 14px;
+ background: var(--accent-subtle);
+ border: 1px solid #bfdbfe;
+ border-radius: 99px;
+ font-size: 0.825rem;
+ color: var(--accent);
+ font-weight: 500;
+ max-width: fit-content;
+}
+
+.dashboard-description {
+ font-size: 0.95rem;
+ color: var(--text-secondary);
+ line-height: 1.7;
+ margin: 0;
+}
+
+/* ── Candidates List Page ──────────────────────────────────── */
+.candidates-root {
+ max-width: 1200px;
+ margin: 0 auto;
+}
+
+.candidates-page-header {
+ display: flex;
+ align-items: flex-start;
+ justify-content: space-between;
+ margin-bottom: 1.75rem;
+ padding-bottom: 1.25rem;
+ border-bottom: 1px solid var(--border);
+}
+
+.candidates-eyebrow {
+ font-size: 0.72rem;
+ font-weight: 500;
+ letter-spacing: 0.1em;
+ text-transform: uppercase;
+ color: var(--text-muted);
+ margin-bottom: 4px;
+}
+
+.candidates-page-title {
+ font-size: 1.35rem;
+ font-weight: 600;
+ color: var(--text-primary);
+ margin: 0;
+}
+
+.candidates-toolbar {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ flex-wrap: wrap;
+ gap: 0.75rem;
+ margin-bottom: 1rem;
+}
+
+.candidates-toolbar-left {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ flex-wrap: wrap;
+}
+
+.candidates-toolbar-right {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+}
+
+.candidates-bulk-bar {
+ display: flex;
+ align-items: center;
+ gap: 10px;
+ padding: 8px 14px;
+ background: var(--accent-subtle);
+ border: 1px solid #bfdbfe;
+ border-radius: var(--radius-md);
+ margin-bottom: 1rem;
+ font-size: 0.85rem;
+ color: var(--accent);
+}
+
+.candidates-bulk-bar strong {
+ font-weight: 600;
+}
+
+.candidates-meta {
+ font-size: 0.8rem;
+ color: var(--text-muted);
+ margin-bottom: 0.75rem;
+}
+
+.candidates-pagination {
+ display: flex;
+ justify-content: flex-end;
+ margin-top: 1.25rem;
 }
 
 /* ── Responsive ────────────────────────────────────────────── */
@@ -675,6 +960,18 @@ a:hover { text-decoration: underline; }
  .profile-layout { grid-template-columns: 1fr; }
  .profile-avatar-card { position: static; flex-direction: row; text-align: left; }
  .profile-grid { grid-template-columns: 1fr; }
+
+ .app-layout-main {
+  margin-left: 80px;
+ }
+
+ .app-layout-user-info {
+  display: none;
+ }
+
+ .app-layout-content {
+  padding: 1rem;
+ }
 
  .app-shell { grid-template-columns: 1fr; }
 }
