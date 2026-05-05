@@ -54,6 +54,9 @@ import axios, {
         window.dispatchEvent(new CustomEvent('rts:session-expired'));
         window.location.replace('/login');
       }
+      if (status === 403) {
+        window.location.replace('/403');
+      }
    
       return Promise.reject(new Error(message ?? error.message ?? 'Unexpected error.'));
     }

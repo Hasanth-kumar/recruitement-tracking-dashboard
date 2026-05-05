@@ -25,6 +25,7 @@ import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
 import { mapApiRowToCandidate, PagedResponseApi } from '../candidateApiMappers';
+import { useAuth } from '../../../shared/hooks/useAuth';
 
 const USE_MOCK = USE_CANDIDATE_MOCK;
 
@@ -95,6 +96,8 @@ const s = {
 // ── Component ───────────────────────────────────────────────────
 const CandidateListPage: React.FC = () => {
  const navigate = useNavigate();
+ const { hasRole } = useAuth();
+ const canManageCandidates = hasRole(Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER);
 
  // ── Data state ────────────────────────────────────────────────
  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
@@ -295,14 +298,16 @@ const CandidateListPage: React.FC = () => {
            <p style={s.eyebrow}>Recruitment</p>
            <h2 style={s.pageTitle}>Candidates</h2>
          </div>
-         <Button
-           type="primary"
-           icon={<PlusOutlined />}
-           size="large"
-           onClick={() => navigate('/candidates/new')}
-         >
-           Add candidate
-         </Button>
+        {canManageCandidates && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="large"
+            onClick={() => navigate('/candidates/new')}
+          >
+            Add candidate
+          </Button>
+        )}
        </div>
 
        {/* Toolbar — search + filters */}
@@ -330,7 +335,7 @@ const CandidateListPage: React.FC = () => {
        </div>
 
        {/* Bulk action bar — appears when rows are selected */}
-       {selectedIds.length > 0 && (
+      {canManageCandidates && selectedIds.length > 0 && (
          <div style={s.bulkBar}>
            <span>
              <strong>{selectedIds.length}</strong> candidate{selectedIds.length !== 1 ? 's' : ''} selected
@@ -372,6 +377,7 @@ const CandidateListPage: React.FC = () => {
          onStageUpdate={c => setStageTarget(c)}
          selectedIds={selectedIds}
          onSelectChange={setSelectedIds}
+        canManageCandidates={canManageCandidates}
        />
 
        {/* Pagination — US-4: 20 per page */}

@@ -3,8 +3,10 @@ package com.rts.modules.candidate.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
+import com.rts.modules.candidate.api.dto.StageHistoryResponse;
 import com.rts.modules.candidate.application.CandidateService;
 import com.rts.modules.candidate.domain.Candidate;
+import com.rts.shared.exception.ResourceNotFoundException;
 import com.rts.shared.exception.GlobalExceptionHandler;
 import com.rts.shared.kernel.RecruitmentStage;
 import com.rts.shared.response.PagedResponse;
@@ -29,6 +31,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -151,5 +154,47 @@ class CandidateControllerTest {
                         .param("position", "Engineer"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(0));
+    }
+
+    @Test
+    void getStageHistoryShouldReturn200WithData() throws Exception {
+        when(candidateService.getStageHistory("candidate-1")).thenReturn(List.of(
+                new StageHistoryResponse(
+                        RecruitmentStage.SHORTLISTED,
+                        LocalDateTime.of(2026, 5, 5, 10, 30),
+                        "recruiter1"
+                )
+        ));
+
+        mockMvc.perform(get("/api/candidates/candidate-1/stage-history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Stage history retrieved successfully"))
+                .andExpect(jsonPath("$.data[0].stage").value("SHORTLISTED"))
+                .andExpect(jsonPath("$.data[0].changedBy").value("recruiter1"));
+    }
+
+    @Test
+    void getStageHistoryShouldReturn404WhenCandidateMissing() throws Exception {
+        when(candidateService.getStageHistory("missing"))
+                .thenThrow(new ResourceNotFoundException("Candidate not found: missing"));
+
+        mockMvc.perform(get("/api/candidates/missing/stage-history"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Candidate not found: missing"));
+    }
+
+    @Test
+    void updateStageShouldReturn400ForInvalidStagePayload() throws Exception {
+        String invalidBody = """
+                {"stage":"NOT_A_VALID_STAGE"}
+                """;
+
+        mockMvc.perform(put("/api/candidates/candidate-1/stage")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 }

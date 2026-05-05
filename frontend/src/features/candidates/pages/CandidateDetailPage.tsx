@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, message } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Candidate } from '../candidateTypes';
+import { Candidate, RecruitmentStage } from '../candidateTypes';
 import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
@@ -10,6 +10,13 @@ import { mapApiRowToCandidate } from '../candidateApiMappers';
 import { mockGetCandidate } from '../candidateMock';
 import StatusBadge from '../../../shared/components/StatusBadge';
 import AuthenticatedCandidateAvatar from '../components/AuthenticatedCandidateAvatar';
+import { useAuth } from '../../../shared/hooks/useAuth';
+
+type StageHistoryItem = {
+  stage: RecruitmentStage;
+  changedAt: string;
+  changedBy: string;
+};
 
 const s = {
   root: { fontFamily: "'IBM Plex Sans', sans-serif", minHeight: '100vh', background: '#f9f9f8' },
@@ -74,6 +81,9 @@ const s = {
   label: { color: '#6b6b65', fontWeight: 500 as const, marginRight: 8 },
   actions: { display: 'flex' as const, gap: 8, flexWrap: 'wrap' as const, marginTop: '1.25rem' },
   head: { display: 'flex' as const, alignItems: 'center' as const, gap: 16, marginBottom: '1rem' },
+  timelineTitle: { fontSize: '1rem', fontWeight: 600 as const, color: '#1a1a18', margin: '0 0 0.75rem' },
+  timelineItem: { borderLeft: '2px solid #dbe4ff', paddingLeft: '0.75rem', marginBottom: '0.85rem' },
+  timelineMeta: { fontSize: '0.8rem', color: '#6b6b65' },
 };
 
 async function apiGetCandidate(id: string): Promise<Candidate> {
@@ -83,10 +93,20 @@ async function apiGetCandidate(id: string): Promise<Candidate> {
   return mapApiRowToCandidate(data.data as Record<string, unknown>);
 }
 
+async function apiGetStageHistory(id: string): Promise<StageHistoryItem[]> {
+  const res = await fetch(`/api/candidates/${id}/stage-history`, { headers: basicAuthFetchHeaders(false) });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+  return (data.data as StageHistoryItem[]) ?? [];
+}
+
 const CandidateDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const canManageCandidates = hasRole(Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER);
   const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [stageHistory, setStageHistory] = useState<StageHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,8 +120,14 @@ const CandidateDetailPage: React.FC = () => {
         if (USE_CANDIDATE_MOCK) {
           await new Promise(r => setTimeout(r, 200));
           c = mockGetCandidate(id);
+          setStageHistory([]);
         } else {
-          c = await apiGetCandidate(id);
+          const [candidateResult, historyResult] = await Promise.all([
+            apiGetCandidate(id),
+            apiGetStageHistory(id),
+          ]);
+          c = candidateResult;
+          setStageHistory(historyResult);
         }
         if (cancelled) return;
         if (!c) throw new Error('Candidate not found.');
@@ -243,15 +269,33 @@ const CandidateDetailPage: React.FC = () => {
           )}
 
           <div style={s.actions}>
-            <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/candidates/${id}/edit`)}>
-              Edit
-            </Button>
+            {canManageCandidates && (
+              <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/candidates/${id}/edit`)}>
+                Edit
+              </Button>
+            )}
             {candidate.hasResume && !USE_CANDIDATE_MOCK && (
               <Button icon={<DownloadOutlined />} onClick={downloadResume}>
                 Download résumé
               </Button>
             )}
           </div>
+        </div>
+
+        <div style={s.card}>
+          <h2 style={s.timelineTitle}>Stage timeline</h2>
+          {stageHistory.length === 0 ? (
+            <p style={{ margin: 0, color: '#6b6b65' }}>No stage changes recorded yet.</p>
+          ) : (
+            stageHistory.map((entry, index) => (
+              <div key={`${entry.changedAt}-${index}`} style={s.timelineItem}>
+                <div><StatusBadge stage={entry.stage} /></div>
+                <div style={s.timelineMeta}>
+                  {new Date(entry.changedAt).toLocaleString()} by {entry.changedBy}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

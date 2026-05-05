@@ -2,15 +2,19 @@ package com.rts.modules.candidate.application;
 
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
+import com.rts.modules.candidate.api.dto.StageHistoryResponse;
 import com.rts.modules.candidate.api.dto.UpdateCandidateRequest;
 import com.rts.modules.candidate.api.dto.UpdateStageRequest;
 import com.rts.modules.candidate.domain.Candidate;
 import com.rts.modules.candidate.domain.CandidateDocumentType;
+import com.rts.modules.candidate.domain.StageHistory;
 import com.rts.modules.candidate.persistence.CandidateDocumentRepository;
 import com.rts.modules.candidate.persistence.CandidateRepository;
 import com.rts.modules.candidate.persistence.CandidateSpecifications;
+import com.rts.modules.candidate.persistence.StageHistoryRepository;
 import com.rts.shared.exception.ConflictException;
 import com.rts.shared.exception.ResourceNotFoundException;
+import com.rts.shared.exception.ValidationException;
 import com.rts.shared.kernel.RecruitmentStage;
 import com.rts.shared.response.PagedResponse;
 import org.springframework.data.domain.Page;
@@ -18,9 +22,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,13 +45,16 @@ public class CandidateService {
 
     private final CandidateRepository candidateRepository;
     private final CandidateDocumentRepository candidateDocumentRepository;
+    private final StageHistoryRepository stageHistoryRepository;
 
     public CandidateService(
             CandidateRepository candidateRepository,
-            CandidateDocumentRepository candidateDocumentRepository
+            CandidateDocumentRepository candidateDocumentRepository,
+            StageHistoryRepository stageHistoryRepository
     ) {
         this.candidateRepository = candidateRepository;
         this.candidateDocumentRepository = candidateDocumentRepository;
+        this.stageHistoryRepository = stageHistoryRepository;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
@@ -150,8 +161,31 @@ public class CandidateService {
     public CandidateResponse updateStage(String id, UpdateStageRequest request) {
         Candidate candidate = candidateRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found: " + id));
+        if (candidate.getStage() == request.stage()) {
+            throw new ValidationException("Candidate is already in stage: " + request.stage().name());
+        }
         candidate.setStage(request.stage());
-        return toResponseWithDocumentFlags(candidateRepository.save(candidate));
+        Candidate savedCandidate = candidateRepository.save(candidate);
+
+        StageHistory stageHistory = new StageHistory();
+        stageHistory.setCandidateId(savedCandidate.getId());
+        stageHistory.setStage(request.stage());
+        stageHistory.setChangedAt(LocalDateTime.now());
+        stageHistory.setChangedBy(resolveAuthenticatedUser());
+        stageHistoryRepository.save(stageHistory);
+
+        return toResponseWithDocumentFlags(savedCandidate);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
+    @Transactional(readOnly = true)
+    public List<StageHistoryResponse> getStageHistory(String id) {
+        candidateRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found: " + id));
+        return stageHistoryRepository.findByCandidateIdOrderByChangedAtDesc(id)
+                .stream()
+                .map(StageHistoryResponse::from)
+                .toList();
     }
 
     private CandidateResponse toResponseWithDocumentFlags(Candidate candidate) {
@@ -171,6 +205,22 @@ public class CandidateService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String resolveAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return "system";
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
+        }
+        if (principal instanceof String username && !username.isBlank()) {
+            return username;
+        }
+        String name = authentication.getName();
+        return name == null || name.isBlank() ? "system" : name;
     }
 
     private Pageable sanitizePageable(Pageable pageable) {

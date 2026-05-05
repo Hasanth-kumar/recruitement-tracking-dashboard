@@ -11,23 +11,14 @@ import CandidateFormPage from './features/candidates/pages/CandidateFormPage';
 import CandidateDetailPage from './features/candidates/pages/CandidateDetailPage';
 import { Role } from './constants/roles';
 import { useAuth } from './shared/hooks/useAuth';
+import ProtectedRoute from './shared/components/ProtectedRoutes';
+import ForbiddenPage from './shared/components/ForbiddenPage';
 
 // ── Simple auth guard ──────────────────────────────────────────
 // Checks for a token in either storage tier before allowing access
 
 function isLoggedIn(): boolean {
   return !!(localStorage.getItem('rts_token') || sessionStorage.getItem('rts_token'));
-}
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  return isLoggedIn() ? <>{children}</> : <Navigate to="/login" replace />;
-}
-
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  if (!isLoggedIn()) return <Navigate to="/login" replace />;
-  const role = localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role');
-  if (role !== Role.ADMIN) return <Navigate to="/dashboard" replace />;
-  return <>{children}</>;
 }
 
 // ── Temporary dashboard placeholder ───────────────────────────
@@ -94,15 +85,51 @@ const App: React.FC = () => {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/403" element={<ForbiddenPage />} />
 
         {/* Protected */}
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPlaceholder /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
-        <Route path="/candidates" element={<ProtectedRoute><CandidateListPage /></ProtectedRoute>} />
-        <Route path="/candidates/new" element={<ProtectedRoute><CandidateFormPage /></ProtectedRoute>} />
-        <Route path="/candidates/:id/edit" element={<ProtectedRoute><CandidateFormPage /></ProtectedRoute>} />
-        <Route path="/candidates/:id" element={<ProtectedRoute><CandidateDetailPage /></ProtectedRoute>} />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={[Role.ADMIN]}>
+              <AdminUsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidates"
+          element={
+            <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER]}>
+              <CandidateListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidates/new"
+          element={
+            <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER]}>
+              <CandidateFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidates/:id/edit"
+          element={
+            <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER]}>
+              <CandidateFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/candidates/:id"
+          element={
+            <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER]}>
+              <CandidateDetailPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />

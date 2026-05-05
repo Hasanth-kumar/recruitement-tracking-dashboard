@@ -23,13 +23,22 @@ public class DataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (userRepository.findByUsername("admin").isEmpty()) {
-            User admin = new User();
-            admin.setUsername("admin");
-            admin.setEmail("admin@rts.com");
-            admin.setPassword(passwordEncoder.encode("Admin@123"));
-            admin.setRole(Role.ADMIN);
-            userRepository.save(admin);
+        seedUser("admin", "admin@rts.com", "Admin@123", Role.ADMIN);
+        seedUser("hrmanager", "hr.manager@rts.com", "HrManager@123", Role.HR_MANAGER);
+        seedUser("recruiter", "recruiter@rts.com", "Recruiter@123", Role.RECRUITER);
+        seedUser("interviewer", "interviewer@rts.com", "Interviewer@123", Role.INTERVIEWER);
+    }
+
+    private void seedUser(String username, String email, String rawPassword, Role role) {
+        if (userRepository.findByUsername(username).isPresent()) {
+            return;
         }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole(role);
+        userRepository.save(user);
     }
 }

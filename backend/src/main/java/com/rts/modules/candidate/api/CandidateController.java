@@ -2,6 +2,7 @@ package com.rts.modules.candidate.api;
 
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
+import com.rts.modules.candidate.api.dto.StageHistoryResponse;
 import com.rts.modules.candidate.api.dto.UpdateCandidateRequest;
 import com.rts.modules.candidate.api.dto.UpdateStageRequest;
 import com.rts.modules.candidate.application.CandidateService;
@@ -27,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Tag(name = "Candidates")
 @RestController
@@ -97,5 +100,12 @@ public class CandidateController {
     ) {
         CandidateResponse updated = candidateService.updateStage(id, request);
         return ResponseEntity.ok(ApiResponse.success("Stage updated successfully", updated));
+    }
+
+    @Operation(summary = "Get stage history", description = "Returns stage change history for the candidate.")
+    @GetMapping("/{id}/stage-history")
+    public ResponseEntity<ApiResponse<List<StageHistoryResponse>>> getStageHistory(@PathVariable String id) {
+        List<StageHistoryResponse> history = candidateService.getStageHistory(id);
+        return ResponseEntity.ok(ApiResponse.success("Stage history retrieved successfully", history));
     }
 }

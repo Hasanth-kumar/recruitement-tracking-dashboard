@@ -6,6 +6,7 @@ import com.rts.modules.auth.domain.User;
 import com.rts.modules.auth.persistence.UserRepository;
 import com.rts.shared.exception.ConflictException;
 import com.rts.shared.exception.ValidationException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class RegistrationService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public User register(RegisterUserRequest request) {
         String username = request.username().trim();
         String email = request.email().trim().toLowerCase();

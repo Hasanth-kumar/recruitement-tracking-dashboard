@@ -33,6 +33,7 @@ interface Props {
  onStageUpdate:  (candidate: Candidate) => void;
  selectedIds:    string[];
  onSelectChange: (ids: string[]) => void;
+ canManageCandidates: boolean;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ const CandidateTable: React.FC<Props> = ({
  onStageUpdate,
  selectedIds,
  onSelectChange,
+canManageCandidates,
 }) => {
  const navigate = useNavigate();
  const [deleteTarget, setDeleteTarget] = useState<Candidate | null>(null);
@@ -109,15 +111,17 @@ const CandidateTable: React.FC<Props> = ({
          <thead style={s.thead}>
            <tr>
              {/* Checkbox */}
-             <th style={{ ...s.th, width: 40, paddingRight: 0 }}>
-               <input
-                 type="checkbox"
-                 style={s.checkbox}
-                 checked={allSelected}
-                 ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
-                 onChange={toggleAll}
-               />
-             </th>
+            <th style={{ ...s.th, width: 40, paddingRight: 0 }}>
+              {canManageCandidates && (
+                <input
+                  type="checkbox"
+                  style={s.checkbox}
+                  checked={allSelected}
+                  ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                  onChange={toggleAll}
+                />
+              )}
+            </th>
 
              {/* Sortable headers */}
              <th style={thStyle('name')} onClick={() => onSortChange('name')}>
@@ -157,12 +161,14 @@ const CandidateTable: React.FC<Props> = ({
                  >
                    {/* Checkbox */}
                    <td style={{ ...rowTd, width: 40, paddingRight: 0 }}>
-                     <input
-                       type="checkbox"
-                       style={s.checkbox}
-                       checked={isSelected}
-                       onChange={() => toggleOne(c.id)}
-                     />
+                    {canManageCandidates && (
+                      <input
+                        type="checkbox"
+                        style={s.checkbox}
+                        checked={isSelected}
+                        onChange={() => toggleOne(c.id)}
+                      />
+                    )}
                    </td>
 
                    {/* Name + email */}
@@ -215,35 +221,36 @@ const CandidateTable: React.FC<Props> = ({
                          onClick={() => navigate(`/candidates/${c.id}`)}
                          style={{ color: '#6b6b65' }}
                        />
-                       {/* Edit */}
-                       <Button
-                         type="text"
-                         size="small"
-                         icon={<EditOutlined />}
-                         title="Edit candidate"
-                         onClick={() => navigate(`/candidates/${c.id}/edit`)}
-                         style={{ color: '#6b6b65' }}
-                       />
-                       {/* Stage update */}
-                       <Button
-                         type="text"
-                         size="small"
-                         title="Update stage"
-                         onClick={() => onStageUpdate(c)}
-                         style={{ color: '#6b6b65', fontSize: '0.75rem', fontWeight: 500, padding: '0 6px' }}
-                       >
-                         Stage
-                       </Button>
-                       {/* Delete */}
-                       <Button
-                         type="text"
-                         size="small"
-                         icon={<DeleteOutlined />}
-                         title="Delete candidate"
-                         onClick={() => setDeleteTarget(c)}
-                         style={{ color: '#dc2626' }}
-                         danger
-                       />
+                      {canManageCandidates && (
+                        <>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined />}
+                            title="Edit candidate"
+                            onClick={() => navigate(`/candidates/${c.id}/edit`)}
+                            style={{ color: '#6b6b65' }}
+                          />
+                          <Button
+                            type="text"
+                            size="small"
+                            title="Update stage"
+                            onClick={() => onStageUpdate(c)}
+                            style={{ color: '#6b6b65', fontSize: '0.75rem', fontWeight: 500, padding: '0 6px' }}
+                          >
+                            Stage
+                          </Button>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            title="Delete candidate"
+                            onClick={() => setDeleteTarget(c)}
+                            style={{ color: '#dc2626' }}
+                            danger
+                          />
+                        </>
+                      )}
                      </div>
                    </td>
                  </tr>
