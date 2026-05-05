@@ -8,7 +8,6 @@ import CandidateFilterPanel, { FilterState, EMPTY_FILTER } from '../components/C
 import CandidateTable, { SortField, SortState } from '../components/CandidateTable';
 import StageUpdateModal from '../components/StageUpdateModal';
 import BulkStageModal from '../components/BulkStageModal';
-import AppLayout from '../../../shared/components/AppLayout';
 
 import { Candidate, RecruitmentStage } from '../candidateTypes';
 import {
@@ -238,7 +237,7 @@ const CandidateListPage: React.FC = () => {
 
  // ── Render ────────────────────────────────────────────────────
  return (
-   <AppLayout>
+  <>
      <div className="candidates-root">
        {/* Page header */}
        <div className="candidates-page-header">
@@ -356,7 +355,7 @@ const CandidateListPage: React.FC = () => {
        onClose={() => setBulkModalOpen(false)}
        loading={bulkLoading}
      />
-   </AppLayout>
+  </>
  );
 };
 

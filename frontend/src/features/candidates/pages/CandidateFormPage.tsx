@@ -10,7 +10,6 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import PhotoUpload from '../components/PhotoUpload';
 import ResumeUpload from '../components/ResumeUpload';
-import AppLayout from '../../../shared/components/AppLayout';
 import { Candidate, CandidateFormValues, POSITIONS, EXPERIENCE_LEVELS } from '../candidateTypes';
 import {
  mockCreateCandidate,
@@ -20,7 +19,6 @@ import {
  mockUpdateCandidateResume,
 } from '../candidateMock';
 import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
-import { Role } from '../../../constants/roles';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
 import { mapApiRowToCandidate } from '../candidateApiMappers';
 import '../../../App.css';
@@ -87,6 +85,62 @@ async function apiUploadResume(id: string, file: File) {
 // ── Validation ──────────────────────────────────────────────────
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+]?[\d\s\-().]{7,15}$/;
+
+const s = {
+ root: { fontFamily: "'IBM Plex Sans', sans-serif", background: '#f9f9f8' },
+ body: { maxWidth: 1100, margin: '0 auto', padding: '2rem' },
+ backBtn: {
+   display: 'flex' as const,
+   alignItems: 'center' as const,
+   gap: 6,
+   fontSize: '0.85rem',
+   color: '#6b6b65',
+   background: 'none',
+   border: 'none',
+   cursor: 'pointer' as const,
+   padding: 0,
+   marginBottom: '1.5rem',
+   fontFamily: 'inherit',
+ },
+ header: { marginBottom: '1.25rem' },
+ eyebrow: {
+   fontSize: '0.72rem',
+   fontWeight: 500 as const,
+   letterSpacing: '0.08em',
+   textTransform: 'uppercase' as const,
+   color: '#b0b0a8',
+   marginBottom: '0.3rem',
+ },
+ title: { fontSize: '1.35rem', fontWeight: 600 as const, color: '#1a1a18', margin: 0 },
+ layout: { display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1rem', alignItems: 'start' as const },
+ card: {
+   background: '#fff',
+   border: '1px solid #e4e4e0',
+   borderRadius: 12,
+   padding: '1.25rem',
+   marginBottom: '1rem',
+ },
+ cardTitle: { fontSize: '1rem', fontWeight: 600 as const, color: '#1a1a18', margin: '0 0 0.2rem' },
+ cardDesc: { fontSize: '0.82rem', color: '#6b6b65', marginBottom: '1rem' },
+ grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.9rem' },
+ field: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
+ fieldFull: { gridColumn: '1 / -1', display: 'flex', flexDirection: 'column' as const, gap: 6 },
+ label: { fontSize: '0.8rem', fontWeight: 500 as const, color: '#6b6b65' },
+ req: { color: '#dc2626' },
+ errText: { fontSize: '0.75rem', color: '#dc2626' },
+ actions: { display: 'flex', gap: 8, marginTop: '1rem' },
+ sideCard: {
+   background: '#fff',
+   border: '1px solid #e4e4e0',
+   borderRadius: 12,
+   padding: '1rem',
+   position: 'sticky' as const,
+   top: '1rem',
+ },
+ sideTitle: { fontSize: '0.9rem', fontWeight: 600 as const, color: '#1a1a18', marginBottom: '0.7rem' },
+ sideDivider: { height: 1, background: '#f0f0ed', margin: '0.75rem 0' },
+ sideHint: { fontSize: '0.75rem', color: '#b0b0a8', margin: 0 },
+};
 
 function validate(
  form: CandidateFormValues,
@@ -277,14 +331,6 @@ const CandidateFormPage: React.FC = () => {
 
  const handleCancel = () => navigate('/candidates');
 
- const logout = () => {
-   ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
-     localStorage.removeItem(k);
-     sessionStorage.removeItem(k);
-   });
-   window.location.href = '/login';
- };
-
  // ── Render ────────────────────────────────────────────────────
  if (loading) {
    return (
@@ -296,26 +342,6 @@ const CandidateFormPage: React.FC = () => {
 
  return (
    <div style={s.root}>
-
-     {/* Nav */}
-     <div style={s.nav}>
-       <div style={s.navBrand}>
-         <div style={s.navMark}>RTS</div>
-         <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#6b6b65' }}>
-           Recruitment Tracking System
-         </span>
-       </div>
-      <div style={s.navLinks}>
-        <a href="/dashboard"  style={s.navLink}>Dashboard</a>
-        <a href="/candidates" style={s.navLink}>Candidates</a>
-        {(localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role')) === Role.ADMIN && (
-          <a href="/admin/users" style={s.navLink}>Users</a>
-        )}
-        <a href="/profile"    style={s.navLink}>Profile</a>
-         <button onClick={logout} style={s.navBtn}>Sign out</button>
-       </div>
-     </div>
-
      <div style={s.body}>
 
        {/* Back button */}

@@ -148,14 +148,6 @@ const CandidateDetailPage: React.FC = () => {
     };
   }, [id, navigate]);
 
-  const logout = () => {
-    ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
-      localStorage.removeItem(k);
-      sessionStorage.removeItem(k);
-    });
-    window.location.href = '/login';
-  };
-
   const downloadResume = async () => {
     if (!id) return;
     try {
@@ -189,24 +181,6 @@ const CandidateDetailPage: React.FC = () => {
 
   return (
     <div style={s.root}>
-      <div style={s.nav}>
-        <div style={s.navBrand}>
-          <div style={s.navMark}>RTS</div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#6b6b65' }}>
-            Recruitment Tracking System
-          </span>
-        </div>
-        <div style={s.navLinks}>
-          <a href="/dashboard" style={s.navLink}>Dashboard</a>
-          <a href="/candidates" style={s.navLink}>Candidates</a>
-          {(localStorage.getItem('rts_role') ?? sessionStorage.getItem('rts_role')) === Role.ADMIN && (
-            <a href="/admin/users" style={s.navLink}>Users</a>
-          )}
-          <a href="/profile" style={s.navLink}>Profile</a>
-          <button type="button" onClick={logout} style={s.navBtn}>Sign out</button>
-        </div>
-      </div>
-
       <div style={s.body}>
         <button type="button" style={s.backBtn} onClick={() => navigate('/candidates')}>
           <ArrowLeftOutlined /> Back to candidates
