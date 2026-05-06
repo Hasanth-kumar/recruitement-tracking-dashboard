@@ -73,14 +73,21 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <Sider
         className="app-layout-sider"
         collapsible
+        trigger={null}
         collapsed={collapsed}
         onCollapse={setCollapsed}
         width={240}
         theme="light"
       >
         <div className="app-layout-logo">
-          <div className="app-layout-logo-mark">RTS</div>
-          {!collapsed && <span className="app-layout-logo-text">RTS</span>}
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            className="app-layout-toggle app-layout-toggle--sider"
+            aria-label="Toggle sidebar"
+          />
+          {!collapsed && <div className="app-layout-logo-mark">RTS</div>}
         </div>
 
         <div className="app-layout-menu">
@@ -138,13 +145,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       <Layout className="app-layout-main">
         {/* Header */}
         <Header className="app-layout-header">
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            className="app-layout-toggle"
-          />
-
           <div className="app-layout-header-spacer" />
 
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">

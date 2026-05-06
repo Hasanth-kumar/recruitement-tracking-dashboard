@@ -46,6 +46,19 @@ class AuthControllerSecurityTest {
     }
 
     @Test
+    void loginShouldReturn400WhenUsernameOrEmailIsBlank() throws Exception {
+        String json = """
+                {"usernameOrEmail":"   ","password":"secret"}
+                """;
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
     void loginShouldReturn401WhenCredentialsAreInvalid() throws Exception {
         LoginRequest request = new LoginRequest("wrong", "wrong");
         doThrow(new BadCredentialsException("Invalid username or password"))

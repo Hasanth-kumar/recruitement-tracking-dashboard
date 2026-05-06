@@ -116,7 +116,7 @@ class SprintOneServiceRbacTest {
     @Test
     void interviewerCannotListCandidates() {
         authenticateAs(Role.INTERVIEWER);
-        assertThatThrownBy(() -> candidateService.list(null, null, PageRequest.of(0, 20)))
+        assertThatThrownBy(() -> candidateService.list(null, null, null, null, null, PageRequest.of(0, 20)))
                 .isInstanceOf(AccessDeniedException.class);
     }
 
@@ -130,7 +130,7 @@ class SprintOneServiceRbacTest {
         ))
                 .thenReturn(page);
 
-        assertThatCode(() -> candidateService.list(null, null, PageRequest.of(0, 20)))
+        assertThatCode(() -> candidateService.list(null, null, null, null, null, PageRequest.of(0, 20)))
                 .doesNotThrowAnyException();
     }
 

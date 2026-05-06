@@ -28,7 +28,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Tag(name = "Candidates")
@@ -44,7 +46,8 @@ public class CandidateController {
 
     @Operation(
             summary = "List candidates (paginated)",
-            description = "Returns a page of non-deleted candidates. Optional filters: stage, position (contains, case-insensitive). "
+            description = "Returns a page of non-deleted candidates. Optional filters: stage, position (contains, case-insensitive), "
+                    + "search (contains match on name or email), createdFrom / createdTo (filters `createdAt` date range, inclusive). "
                     + "Sort via repeated `sort` params (e.g. sort=name,asc&sort=createdAt,desc). Allowed sort fields: "
                     + "name, email, position, stage, createdAt, updatedAt. Default page size is 20."
     )
@@ -54,9 +57,15 @@ public class CandidateController {
             @RequestParam(required = false) RecruitmentStage stage,
             @Parameter(description = "Case-insensitive contains match on position title")
             @RequestParam(required = false) String position,
+            @Parameter(description = "Case-insensitive contains match on candidate name or email")
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Include candidates created on or after this date (UTC day boundary)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdFrom,
+            @Parameter(description = "Include candidates created on or before this date (UTC day boundary, inclusive)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdTo,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        PagedResponse<CandidateResponse> page = candidateService.list(stage, position, pageable);
+        PagedResponse<CandidateResponse> page = candidateService.list(stage, position, search, createdFrom, createdTo, pageable);
         return ResponseEntity.ok(ApiResponse.success("Candidates retrieved successfully", page));
     }
 

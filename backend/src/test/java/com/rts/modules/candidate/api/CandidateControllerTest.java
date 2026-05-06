@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
 import com.rts.modules.candidate.api.dto.StageHistoryResponse;
+import com.rts.modules.candidate.api.dto.UpdateCandidateRequest;
+import com.rts.modules.candidate.api.dto.UpdateStageRequest;
 import com.rts.modules.candidate.application.CandidateService;
 import com.rts.modules.candidate.domain.Candidate;
 import com.rts.shared.exception.ResourceNotFoundException;
@@ -19,6 +21,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +31,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -130,7 +135,7 @@ class CandidateControllerTest {
                 LocalDateTime.now()
         );
         PagedResponse<CandidateResponse> page = new PagedResponse<>(List.of(row), 0, 20, 1, 1, true, true);
-        when(candidateService.list(isNull(), isNull(), any())).thenReturn(page);
+        when(candidateService.list(isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/candidates"))
                 .andExpect(status().isOk())
@@ -146,6 +151,9 @@ class CandidateControllerTest {
         when(candidateService.list(
                 eq(RecruitmentStage.SHORTLISTED),
                 eq("Engineer"),
+                isNull(),
+                isNull(),
+                isNull(),
                 any()
         )).thenReturn(page);
 
@@ -154,6 +162,95 @@ class CandidateControllerTest {
                         .param("position", "Engineer"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalElements").value(0));
+    }
+
+    @Test
+    void listShouldForwardSearchAndCreatedDateFiltersToService() throws Exception {
+        PagedResponse<CandidateResponse> page = new PagedResponse<>(List.of(), 0, 20, 0, 0, true, true);
+        when(candidateService.list(
+                isNull(),
+                isNull(),
+                eq("bob"),
+                eq(LocalDate.of(2026, 5, 1)),
+                eq(LocalDate.of(2026, 5, 31)),
+                any()
+        )).thenReturn(page);
+
+        mockMvc.perform(get("/api/candidates")
+                        .param("search", "bob")
+                        .param("createdFrom", "2026-05-01")
+                        .param("createdTo", "2026-05-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void getByIdShouldReturn200WhenCandidateExists() throws Exception {
+        CandidateResponse dto = new CandidateResponse(
+                "candidate-1",
+                "Aisha Khan",
+                "aisha@rts.com",
+                "+919876543210",
+                "Backend Engineer",
+                RecruitmentStage.APPLICATION_RECEIVED,
+                "",
+                "",
+                false,
+                false,
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
+        when(candidateService.getById("candidate-1")).thenReturn(dto);
+
+        mockMvc.perform(get("/api/candidates/candidate-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.name").value("Aisha Khan"))
+                .andExpect(jsonPath("$.data.email").value("aisha@rts.com"));
+    }
+
+    @Test
+    void updateShouldReturn200WhenPayloadValid() throws Exception {
+        CandidateResponse dto = new CandidateResponse(
+                "candidate-1",
+                "Updated Name",
+                "updated@rts.com",
+                "+919876543210",
+                "Backend Engineer",
+                RecruitmentStage.APPLICATION_RECEIVED,
+                "",
+                "",
+                false,
+                false,
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
+        when(candidateService.update(eq("candidate-1"), any(UpdateCandidateRequest.class))).thenReturn(dto);
+
+        UpdateCandidateRequest body = new UpdateCandidateRequest(
+                "Updated Name",
+                "updated@rts.com",
+                "+919876543210",
+                "Backend Engineer",
+                null,
+                null
+        );
+
+        mockMvc.perform(put("/api/candidates/candidate-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Updated Name"))
+                .andExpect(jsonPath("$.data.email").value("updated@rts.com"));
+    }
+
+    @Test
+    void deleteShouldInvokeSoftDelete() throws Exception {
+        mockMvc.perform(delete("/api/candidates/candidate-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(candidateService).softDelete("candidate-1");
     }
 
     @Test
@@ -196,5 +293,31 @@ class CandidateControllerTest {
                         .content(invalidBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void updateStageShouldReturn200WhenPayloadValid() throws Exception {
+        CandidateResponse dto = new CandidateResponse(
+                "candidate-1",
+                "Aisha Khan",
+                "aisha@rts.com",
+                "+919876543210",
+                "Backend Engineer",
+                RecruitmentStage.SHORTLISTED,
+                "",
+                "",
+                false,
+                false,
+                LocalDateTime.now(),
+                LocalDateTime.now()
+        );
+        when(candidateService.updateStage(eq("candidate-1"), any(UpdateStageRequest.class))).thenReturn(dto);
+
+        mockMvc.perform(put("/api/candidates/candidate-1/stage")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stage\":\"SHORTLISTED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.stage").value("SHORTLISTED"));
     }
 }

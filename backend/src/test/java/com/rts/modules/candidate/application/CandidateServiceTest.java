@@ -2,6 +2,7 @@ package com.rts.modules.candidate.application;
 
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
+import com.rts.modules.candidate.api.dto.UpdateCandidateRequest;
 import com.rts.modules.candidate.api.dto.UpdateStageRequest;
 import com.rts.modules.candidate.domain.Candidate;
 import com.rts.modules.candidate.domain.CandidateDocumentType;
@@ -122,10 +123,10 @@ class CandidateServiceTest {
         candidate.setStage(RecruitmentStage.APPLICATION_RECEIVED);
 
         Page<Candidate> page = new PageImpl<>(List.of(candidate), PageRequest.of(0, 20), 1);
-        when(candidateRepository.findAll(any(Specification.class), any(Pageable.class)))
+        when(candidateRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class)))
                 .thenReturn(page);
 
-        PagedResponse<CandidateResponse> result = candidateService.list(null, null, PageRequest.of(0, 20));
+        PagedResponse<CandidateResponse> result = candidateService.list(null, null, null, null, null, PageRequest.of(0, 20));
 
         assertThat(result.content()).hasSize(1);
         assertThat(result.content().get(0).id()).isEqualTo("c-1");
@@ -139,13 +140,16 @@ class CandidateServiceTest {
 
     @Test
     void listShouldCapPageSizeAtOneHundred() {
-        when(candidateRepository.findAll(any(Specification.class), any(Pageable.class)))
+        when(candidateRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class)))
                 .thenAnswer(invocation -> {
                     Pageable p = invocation.getArgument(1);
                     return new PageImpl<Candidate>(List.of(), p, 0);
                 });
 
         PagedResponse<CandidateResponse> result = candidateService.list(
+                null,
+                null,
+                null,
                 null,
                 null,
                 PageRequest.of(0, 500)
@@ -156,7 +160,7 @@ class CandidateServiceTest {
 
     @Test
     void listShouldIgnoreDisallowedSortProperties() {
-        when(candidateRepository.findAll(any(Specification.class), any(Pageable.class)))
+        when(candidateRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class)))
                 .thenAnswer(invocation -> {
                     Pageable p = invocation.getArgument(1);
                     assertThat(p.getSort().getOrderFor("createdAt").getDirection()).isEqualTo(Sort.Direction.DESC);
@@ -164,6 +168,9 @@ class CandidateServiceTest {
                 });
 
         candidateService.list(
+                null,
+                null,
+                null,
                 null,
                 null,
                 PageRequest.of(0, 20, Sort.by(Sort.Order.asc("invalidProperty")))
@@ -213,5 +220,121 @@ class CandidateServiceTest {
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("Candidate is already in stage: SHORTLISTED");
         verify(stageHistoryRepository, never()).save(any(StageHistory.class));
+    }
+
+    @Test
+    void getByIdShouldReturnCandidateResponse() {
+        Candidate candidate = new Candidate();
+        candidate.setId("c-1");
+        candidate.setName("Aisha Khan");
+        candidate.setEmail("aisha@rts.com");
+        candidate.setPhone("+919876543210");
+        candidate.setPosition("Backend Engineer");
+        candidate.setStage(RecruitmentStage.APPLICATION_RECEIVED);
+
+        when(candidateRepository.findByIdAndDeletedFalse("c-1")).thenReturn(Optional.of(candidate));
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse("c-1", CandidateDocumentType.PHOTO))
+                .thenReturn(Optional.empty());
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse("c-1", CandidateDocumentType.RESUME))
+                .thenReturn(Optional.empty());
+
+        CandidateResponse response = candidateService.getById("c-1");
+
+        assertThat(response.id()).isEqualTo("c-1");
+        assertThat(response.name()).isEqualTo("Aisha Khan");
+        assertThat(response.email()).isEqualTo("aisha@rts.com");
+        assertThat(response.hasResume()).isFalse();
+        assertThat(response.hasPhoto()).isFalse();
+    }
+
+    @Test
+    void getByIdShouldFailWhenCandidateMissing() {
+        when(candidateRepository.findByIdAndDeletedFalse("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> candidateService.getById("missing"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Candidate not found: missing");
+    }
+
+    @Test
+    void updateShouldNormalizeEmailAndPersist() {
+        Candidate candidate = new Candidate();
+        candidate.setId("c-1");
+        candidate.setName("Old");
+        candidate.setEmail("old@rts.com");
+        candidate.setPhone("+919876543210");
+        candidate.setPosition("Backend Engineer");
+        candidate.setStage(RecruitmentStage.APPLICATION_RECEIVED);
+
+        when(candidateRepository.findByIdAndDeletedFalse("c-1")).thenReturn(Optional.of(candidate));
+        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalseAndIdNot("new@rts.com", "c-1")).thenReturn(false);
+        when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse("c-1", CandidateDocumentType.PHOTO))
+                .thenReturn(Optional.empty());
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse("c-1", CandidateDocumentType.RESUME))
+                .thenReturn(Optional.empty());
+
+        UpdateCandidateRequest request = new UpdateCandidateRequest(
+                "  New Name  ",
+                "  NEW@RTS.COM  ",
+                "+919876543210",
+                "Backend Engineer",
+                null,
+                null
+        );
+
+        CandidateResponse updated = candidateService.update("c-1", request);
+
+        assertThat(updated.name()).isEqualTo("New Name");
+        assertThat(updated.email()).isEqualTo("new@rts.com");
+        assertThat(candidate.getEmail()).isEqualTo("new@rts.com");
+    }
+
+    @Test
+    void softDeleteShouldMarkCandidateDeleted() {
+        Candidate candidate = new Candidate();
+        candidate.setId("c-1");
+        candidate.setDeleted(false);
+        when(candidateRepository.findByIdAndDeletedFalse("c-1")).thenReturn(Optional.of(candidate));
+
+        candidateService.softDelete("c-1");
+
+        assertThat(candidate.isDeleted()).isTrue();
+    }
+
+    @Test
+    void softDeleteShouldFailWhenCandidateMissing() {
+        when(candidateRepository.findByIdAndDeletedFalse("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> candidateService.softDelete("missing"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Candidate not found: missing");
+    }
+
+    @Test
+    void listShouldForwardSearchParametersToRepositoryLayer() {
+        when(candidateRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<Candidate>(List.of(), invocation.getArgument(1), 0));
+
+        candidateService.list(null, null, "Ali", null, null, PageRequest.of(0, 20));
+
+        verify(candidateRepository).findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class));
+    }
+
+    @Test
+    void listShouldForwardCreatedDateFiltersToRepositoryLayer() {
+        when(candidateRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<Candidate>(List.of(), invocation.getArgument(1), 0));
+
+        candidateService.list(
+                null,
+                null,
+                null,
+                java.time.LocalDate.of(2026, 5, 1),
+                java.time.LocalDate.of(2026, 5, 31),
+                PageRequest.of(0, 20)
+        );
+
+        verify(candidateRepository).findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class));
     }
 }

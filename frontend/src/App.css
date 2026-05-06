@@ -769,15 +769,29 @@ a:hover { text-decoration: underline; }
  color: var(--text-primary) !important;
 }
 
+.app-layout-toggle--sider {
+ width: 32px !important;
+ height: 32px !important;
+ min-width: 32px !important;
+ padding: 0 !important;
+ border-radius: var(--radius-sm) !important;
+ display: inline-flex !important;
+ align-items: center !important;
+ justify-content: center !important;
+}
+
 .app-layout-header-spacer {
  flex: 1;
 }
 
 .app-layout-user-menu {
- display: flex;
+ display: inline-flex;
  align-items: center;
  gap: 10px;
  cursor: pointer;
+ height: 100%;
+ line-height: 1;
+ margin-top: 0;
 }
 
 .app-layout-avatar {
@@ -793,6 +807,8 @@ a:hover { text-decoration: underline; }
  display: flex;
  flex-direction: column;
  gap: 2px;
+ justify-content: center;
+ line-height: 1.2;
 }
 
 .app-layout-user-name {
@@ -817,7 +833,7 @@ a:hover { text-decoration: underline; }
 
 /* ── Dashboard Page ────────────────────────────────────────── */
 .dashboard-root {
- max-width: 900px;
+ max-width: 960px;
  margin: 0 auto;
  animation: fadeUp 0.3s ease both;
 }
@@ -861,10 +877,60 @@ a:hover { text-decoration: underline; }
  max-width: fit-content;
 }
 
-.dashboard-description {
+.dashboard-cards {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+ gap: 1rem;
+}
+
+button.dashboard-card {
+ font-family: inherit;
+ text-align: left;
+ border: none;
+ cursor: pointer;
+}
+
+.dashboard-card {
+ background: var(--surface);
+ border: 1px solid var(--border);
+ border-radius: var(--radius-lg);
+ padding: 1.25rem 1.35rem;
+ transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.dashboard-card:hover {
+ border-color: var(--accent);
+ box-shadow: var(--shadow-sm);
+}
+
+.dashboard-card--muted {
+ cursor: default;
+ opacity: 0.92;
+}
+
+.dashboard-card--muted:hover {
+ border-color: var(--border);
+ box-shadow: none;
+}
+
+.dashboard-card-icon {
+ font-size: 1.35rem;
+ color: var(--accent);
+ margin-bottom: 0.65rem;
+ display: block;
+}
+
+.dashboard-card-title {
  font-size: 0.95rem;
+ font-weight: 600;
+ color: var(--text-primary);
+ margin-bottom: 0.35rem;
+}
+
+.dashboard-card-desc {
+ font-size: 0.8rem;
  color: var(--text-secondary);
- line-height: 1.7;
+ line-height: 1.55;
  margin: 0;
 }
 
