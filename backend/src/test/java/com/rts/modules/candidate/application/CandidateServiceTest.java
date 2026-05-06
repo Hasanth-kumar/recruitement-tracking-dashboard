@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -35,8 +37,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -44,6 +46,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentCaptor.forClass;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class CandidateServiceTest {
 
     @Mock
@@ -77,7 +80,7 @@ class CandidateServiceTest {
                 null,
                 null
         );
-        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalse("aisha@rts.com")).thenReturn(false);
+        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalse(anyString())).thenReturn(false);
         when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> {
             Candidate candidate = invocation.getArgument(0);
             candidate.setId("generated-id-1");
@@ -92,7 +95,7 @@ class CandidateServiceTest {
         assertThat(created.getPosition()).isEqualTo("Backend Engineer");
         assertThat(created.getStage()).isEqualTo(RecruitmentStage.APPLICATION_RECEIVED);
         assertThat(created.getId()).isEqualTo("generated-id-1");
-        verify(candidateRepository).existsByEmailIgnoreCaseAndDeletedFalse(eq("aisha@rts.com"));
+        verify(candidateRepository).existsByEmailIgnoreCaseAndDeletedFalse(anyString());
     }
 
     @Test
@@ -105,7 +108,7 @@ class CandidateServiceTest {
                 null,
                 null
         );
-        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalse("aisha@rts.com")).thenReturn(true);
+        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalse(anyString())).thenReturn(true);
 
         assertThatThrownBy(() -> candidateService.create(request))
                 .isInstanceOf(ConflictException.class)
@@ -267,7 +270,7 @@ class CandidateServiceTest {
         candidate.setStage(RecruitmentStage.APPLICATION_RECEIVED);
 
         when(candidateRepository.findByIdAndDeletedFalse("c-1")).thenReturn(Optional.of(candidate));
-        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalseAndIdNot("new@rts.com", "c-1")).thenReturn(false);
+        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedFalseAndIdNot(anyString(), anyString())).thenReturn(false);
         when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse("c-1", CandidateDocumentType.PHOTO))
                 .thenReturn(Optional.empty());

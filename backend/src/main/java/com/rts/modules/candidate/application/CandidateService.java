@@ -34,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -100,7 +101,7 @@ public class CandidateService {
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
     @Transactional
     public Candidate create(CreateCandidateRequest request) {
-        String normalizedEmail = request.email().trim().toLowerCase();
+        String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
         if (candidateRepository.existsByEmailIgnoreCaseAndDeletedFalse(normalizedEmail)) {
             throw new ConflictException("Candidate with this email already exists");
         }
@@ -137,7 +138,7 @@ public class CandidateService {
         Candidate candidate = candidateRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found: " + id));
 
-        String normalizedEmail = request.email().trim().toLowerCase();
+        String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
         if (candidateRepository.existsByEmailIgnoreCaseAndDeletedFalseAndIdNot(normalizedEmail, id)) {
             throw new ConflictException("Candidate with this email already exists");
         }
