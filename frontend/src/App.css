@@ -32,6 +32,29 @@
  --transition: 150ms ease;
 }
 
+:root[data-theme='dark'] {
+ --bg:             #000000;
+ --surface:        #0a0a0a;
+ --border:         #1f1f1f;
+ --border-subtle:  #141414;
+
+ --text-primary:   #e5e7eb;
+ --text-secondary: #9ca3af;
+ --text-muted:     #6b7280;
+
+ --accent:         #60a5fa;
+ --accent-hover:   #3b82f6;
+ --accent-subtle:  rgba(96, 165, 250, 0.16);
+
+ --danger:         #f87171;
+ --danger-subtle:  rgba(248, 113, 113, 0.14);
+ --success:        #4ade80;
+ --warning:        #fbbf24;
+
+ --shadow-sm: 0 1px 2px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.25);
+ --shadow-md: 0 8px 24px rgba(0,0,0,0.35);
+}
+
 /* ── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -45,6 +68,7 @@ body {
  background: var(--bg);
  color: var(--text-primary);
  line-height: 1.6;
+ transition: background-color var(--transition), color var(--transition);
 }
 
 #root { min-height: 100vh; }
@@ -67,7 +91,8 @@ a:hover { text-decoration: underline; }
 /* ── Ant Design resets ─────────────────────────────────────── */
 .ant-input,
 .ant-input-affix-wrapper,
-.ant-input-password {
+.ant-input-password,
+.ant-select-selector {
  background: var(--surface) !important;
  border-color: var(--border) !important;
  border-radius: var(--radius-md) !important;
@@ -79,13 +104,15 @@ a:hover { text-decoration: underline; }
 
 .ant-input:focus,
 .ant-input-affix-wrapper:focus,
-.ant-input-affix-wrapper-focused {
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector {
  border-color: var(--accent) !important;
  box-shadow: 0 0 0 2px rgba(37,99,235,0.1) !important;
 }
 
 .ant-input::placeholder,
-.ant-input-affix-wrapper input::placeholder {
+.ant-input-affix-wrapper input::placeholder,
+.ant-select-selection-placeholder {
  color: var(--text-muted) !important;
 }
 
@@ -117,6 +144,58 @@ a:hover { text-decoration: underline; }
 .ant-divider {
  border-color: var(--border) !important;
  margin: 1.5rem 0 !important;
+}
+
+.ant-select-selection-item {
+ color: var(--text-primary) !important;
+}
+
+.ant-pagination .ant-pagination-item,
+.ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+.ant-pagination .ant-pagination-next .ant-pagination-item-link {
+ background: var(--surface) !important;
+ border-color: var(--border) !important;
+ color: var(--text-secondary) !important;
+}
+
+.ant-pagination .ant-pagination-item a {
+ color: var(--text-secondary) !important;
+}
+
+.ant-pagination .ant-pagination-item-active {
+ background: var(--accent-subtle) !important;
+ border-color: var(--accent) !important;
+}
+
+.ant-pagination .ant-pagination-item-active a {
+ color: var(--accent) !important;
+}
+
+.ant-pagination .ant-pagination-disabled .ant-pagination-item-link {
+ color: var(--text-muted) !important;
+ border-color: var(--border-subtle) !important;
+}
+
+.ant-pagination .ant-pagination-total-text {
+ color: var(--text-muted) !important;
+}
+
+:root[data-theme='dark'] .ant-dropdown .ant-dropdown-menu,
+:root[data-theme='dark'] .ant-select-dropdown,
+:root[data-theme='dark'] .ant-picker-dropdown .ant-picker-panel-container {
+ background: var(--surface) !important;
+ border: 1px solid var(--border) !important;
+ box-shadow: var(--shadow-md) !important;
+}
+
+:root[data-theme='dark'] .ant-dropdown .ant-dropdown-menu-item,
+:root[data-theme='dark'] .ant-select-item {
+ color: var(--text-primary) !important;
+}
+
+:root[data-theme='dark'] .ant-dropdown .ant-dropdown-menu-item:hover,
+:root[data-theme='dark'] .ant-select-item-option-active {
+ background: var(--accent-subtle) !important;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
@@ -241,11 +320,19 @@ a:hover { text-decoration: underline; }
  align-items: center;
  justify-content: center;
  padding: 2rem;
+ position: relative;
 }
 
 .login-form-wrap {
  width: 100%;
  max-width: 360px;
+}
+
+.login-theme-toggle-wrap {
+ position: absolute;
+ top: 1rem;
+ right: 1rem;
+ z-index: 2;
 }
 
 .login-form-header {
@@ -717,6 +804,18 @@ a:hover { text-decoration: underline; }
 
 .app-layout-toggle:hover {
  color: var(--text-primary) !important;
+}
+
+.theme-toggle-btn {
+ color: var(--text-secondary) !important;
+ width: 34px !important;
+ height: 34px !important;
+ border-radius: var(--radius-md) !important;
+}
+
+.theme-toggle-btn:hover {
+ color: var(--text-primary) !important;
+ background: var(--accent-subtle) !important;
 }
 
 .app-layout-toggle--sider {

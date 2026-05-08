@@ -6,6 +6,7 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 
 import LoginPage from '../../features/auth/pages/LoginPage';
 import authReducer from '../../features/auth/authSlice';
+import { AppThemeProvider } from '../../shared/theme/AppThemeProvider';
 
 delete (window as unknown as { location?: Location }).location;
 Object.defineProperty(window, 'location', {
@@ -20,9 +21,11 @@ function renderLogin() {
     middleware: getDefaultMiddleware => getDefaultMiddleware(),
   });
   return render(
-    <Provider store={store}>
-      <LoginPage />
-    </Provider>,
+    <AppThemeProvider>
+      <Provider store={store}>
+        <LoginPage />
+      </Provider>
+    </AppThemeProvider>,
   );
 }
 

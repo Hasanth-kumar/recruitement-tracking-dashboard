@@ -19,10 +19,10 @@ type StageHistoryItem = {
 };
 
 const s = {
-  root: { fontFamily: "'IBM Plex Sans', sans-serif", minHeight: '100vh', background: '#f9f9f8' },
+  root: { fontFamily: "'IBM Plex Sans', sans-serif", minHeight: '100vh', background: 'var(--bg)' },
   nav: {
-    background: '#fff',
-    borderBottom: '1px solid #e4e4e0',
+    background: 'var(--surface)',
+    borderBottom: '1px solid var(--border)',
     padding: '0 2rem',
     height: 52,
     display: 'flex' as const,
@@ -43,12 +43,12 @@ const s = {
     fontWeight: 600 as const,
   },
   navLinks: { display: 'flex' as const, alignItems: 'center' as const, gap: 16 },
-  navLink: { fontSize: '0.85rem', color: '#2563eb', textDecoration: 'none' as const },
+  navLink: { fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'none' as const },
   navBtn: {
     fontSize: '0.85rem',
-    color: '#6b6b65',
+    color: 'var(--text-secondary)',
     background: 'none',
-    border: '1px solid #e4e4e0',
+    border: '1px solid var(--border)',
     borderRadius: 6,
     padding: '4px 12px',
     cursor: 'pointer' as const,
@@ -60,7 +60,7 @@ const s = {
     alignItems: 'center' as const,
     gap: 6,
     fontSize: '0.85rem',
-    color: '#6b6b65',
+    color: 'var(--text-secondary)',
     background: 'none',
     border: 'none',
     cursor: 'pointer' as const,
@@ -69,21 +69,21 @@ const s = {
     fontFamily: 'inherit',
   },
   card: {
-    background: '#fff',
-    border: '1px solid #e4e4e0',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
     borderRadius: 12,
     padding: '1.5rem',
     marginBottom: '1rem',
   },
-  title: { fontSize: '1.25rem', fontWeight: 600 as const, color: '#1a1a18', margin: '0 0 0.25rem' },
-  meta: { fontSize: '0.8rem', color: '#b0b0a8', marginBottom: '1.25rem' },
+  title: { fontSize: '1.25rem', fontWeight: 600 as const, color: 'var(--text-primary)', margin: '0 0 0.25rem' },
+  meta: { fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem' },
   row: { marginBottom: '0.75rem', fontSize: '0.9rem' },
-  label: { color: '#6b6b65', fontWeight: 500 as const, marginRight: 8 },
+  label: { color: 'var(--text-secondary)', fontWeight: 500 as const, marginRight: 8 },
   actions: { display: 'flex' as const, gap: 8, flexWrap: 'wrap' as const, marginTop: '1.25rem' },
   head: { display: 'flex' as const, alignItems: 'center' as const, gap: 16, marginBottom: '1rem' },
-  timelineTitle: { fontSize: '1rem', fontWeight: 600 as const, color: '#1a1a18', margin: '0 0 0.75rem' },
-  timelineItem: { borderLeft: '2px solid #dbe4ff', paddingLeft: '0.75rem', marginBottom: '0.85rem' },
-  timelineMeta: { fontSize: '0.8rem', color: '#6b6b65' },
+  timelineTitle: { fontSize: '1rem', fontWeight: 600 as const, color: 'var(--text-primary)', margin: '0 0 0.75rem' },
+  timelineItem: { borderLeft: '2px solid var(--accent-subtle)', paddingLeft: '0.75rem', marginBottom: '0.85rem' },
+  timelineMeta: { fontSize: '0.8rem', color: 'var(--text-secondary)' },
 };
 
 async function apiGetCandidate(id: string): Promise<Candidate> {
@@ -174,7 +174,7 @@ const CandidateDetailPage: React.FC = () => {
   if (loading || !candidate) {
     return (
       <div style={{ ...s.root, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#b0b0a8' }}>Loading…</p>
+        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
       </div>
     );
   }
@@ -202,13 +202,13 @@ const CandidateDetailPage: React.FC = () => {
                   width: 56,
                   height: 56,
                   borderRadius: '50%',
-                  background: '#eff4ff',
+                  background: 'var(--accent-subtle)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '1.1rem',
                   fontWeight: 600,
-                  color: '#2563eb',
+                  color: 'var(--accent)',
                 }}
               >
                 {candidate.name[0]?.toUpperCase() ?? '?'}
@@ -216,7 +216,7 @@ const CandidateDetailPage: React.FC = () => {
             )}
             <div>
               <h1 style={s.title}>{candidate.name}</h1>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b6b65' }}>{candidate.email}</p>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{candidate.email}</p>
             </div>
           </div>
 
@@ -238,7 +238,7 @@ const CandidateDetailPage: React.FC = () => {
           {candidate.notes && (
             <div style={{ ...s.row, marginTop: '1rem' }}>
               <span style={{ ...s.label, display: 'block', marginBottom: 4 }}>Notes</span>
-              <span style={{ color: '#1a1a18', whiteSpace: 'pre-wrap' as const }}>{candidate.notes}</span>
+              <span style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' as const }}>{candidate.notes}</span>
             </div>
           )}
 
@@ -250,7 +250,7 @@ const CandidateDetailPage: React.FC = () => {
             )}
             {candidate.hasResume && !USE_CANDIDATE_MOCK && (
               <Button icon={<DownloadOutlined />} onClick={downloadResume}>
-                Download résumé
+                Download resume
               </Button>
             )}
           </div>
@@ -259,7 +259,7 @@ const CandidateDetailPage: React.FC = () => {
         <div style={s.card}>
           <h2 style={s.timelineTitle}>Stage timeline</h2>
           {stageHistory.length === 0 ? (
-            <p style={{ margin: 0, color: '#6b6b65' }}>No stage changes recorded yet.</p>
+            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>No stage changes recorded yet.</p>
           ) : (
             stageHistory.map((entry, index) => (
               <div key={`${entry.changedAt}-${index}`} style={s.timelineItem}>

@@ -51,12 +51,12 @@ const BulkStageModal: React.FC<Props> = ({ candidates, open, onConfirm, onClose,
        {/* Count summary */}
        <div style={{
          padding:      '10px 14px',
-         background:   '#eff4ff',
-         border:       '1px solid #bfdbfe',
+        background:   'var(--accent-subtle)',
+        border:       '1px solid var(--border)',
          borderRadius: 8,
          marginBottom: '1.25rem',
          fontSize:     '0.875rem',
-         color:        '#2563eb',
+        color:        'var(--accent)',
          fontWeight:   500,
        }}>
          {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} selected
@@ -64,14 +64,15 @@ const BulkStageModal: React.FC<Props> = ({ candidates, open, onConfirm, onClose,
 
        {/* Candidate list preview — max 5 shown */}
        <div style={{ marginBottom: '1.25rem' }}>
-         <p style={{ fontSize: '0.78rem', fontWeight: 500, color: '#6b6b65', marginBottom: 8 }}>
+        <p style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8 }}>
            Selected candidates
          </p>
          <div style={{
            maxHeight:    160,
            overflowY:    'auto',
-           border:       '1px solid #e4e4e0',
+          border:       '1px solid var(--border)',
            borderRadius: 8,
+          background:   'var(--surface)',
          }}>
            {candidates.map((c, i) => (
              <div
@@ -81,13 +82,13 @@ const BulkStageModal: React.FC<Props> = ({ candidates, open, onConfirm, onClose,
                  alignItems:   'center',
                  justifyContent: 'space-between',
                  padding:      '8px 12px',
-                 borderBottom: i < candidates.length - 1 ? '1px solid #f0f0ed' : 'none',
+                borderBottom: i < candidates.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                  fontSize:     '0.85rem',
                }}
              >
                <div>
-                 <span style={{ fontWeight: 500, color: '#1a1a18' }}>{c.name}</span>
-                 <span style={{ color: '#b0b0a8', marginLeft: 8, fontSize: '0.775rem' }}>
+                <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{c.name}</span>
+                <span style={{ color: 'var(--text-muted)', marginLeft: 8, fontSize: '0.775rem' }}>
                    {c.position}
                  </span>
                </div>
@@ -99,7 +100,7 @@ const BulkStageModal: React.FC<Props> = ({ candidates, open, onConfirm, onClose,
 
        {/* Target stage select */}
        <div style={{ marginBottom: '1rem' }}>
-         <p style={{ fontSize: '0.78rem', fontWeight: 500, color: '#6b6b65', marginBottom: 6 }}>
+        <p style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
            Move all to stage
          </p>
          <Select

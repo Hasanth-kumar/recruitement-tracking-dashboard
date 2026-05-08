@@ -48,8 +48,8 @@ const PhotoUpload: React.FC<Props> = ({ value, onChange, onRemove, disabled }) =
          width: 96,
          height: 96,
          borderRadius: '50%',
-         border: `2px dashed ${hover && !disabled ? '#2563eb' : '#e4e4e0'}`,
-         background: '#f9f9f8',
+        border: `2px dashed ${hover && !disabled ? 'var(--accent)' : 'var(--border)'}`,
+        background: 'var(--bg)',
          display: 'flex',
          alignItems: 'center',
          justifyContent: 'center',
@@ -74,7 +74,7 @@ const PhotoUpload: React.FC<Props> = ({ value, onChange, onRemove, disabled }) =
            </div>
          </>
        ) : (
-         <div style={{ textAlign: 'center', color: '#b0b0a8' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
            <CameraOutlined style={{ fontSize: '1.4rem', display: 'block', marginBottom: 4 }} />
            <span style={{ fontSize: '0.7rem' }}>Photo</span>
          </div>
@@ -96,7 +96,7 @@ const PhotoUpload: React.FC<Props> = ({ value, onChange, onRemove, disabled }) =
        </button>
      )}
 
-     <p style={{ fontSize: '0.7rem', color: '#b0b0a8', textAlign: 'center', margin: 0 }}>
+    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
        JPG or PNG · Max 2 MB
      </p>
 

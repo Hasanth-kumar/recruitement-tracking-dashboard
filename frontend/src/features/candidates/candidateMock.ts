@@ -102,7 +102,11 @@ export function mockDeleteCandidate(id: string): void {
 }
 
 export function mockUpdateCandidatePhoto(id: string, photoUrl: string): void {
- mockUpdateCandidate(id, { photoUrl });
+  mockUpdateCandidate(id, { photoUrl });
+}
+
+export function mockDeleteCandidatePhoto(id: string): void {
+  mockUpdateCandidate(id, { photoUrl: undefined, hasPhoto: false });
 }
 
 export function mockUpdateCandidateResume(id: string, resumeUrl: string): void {

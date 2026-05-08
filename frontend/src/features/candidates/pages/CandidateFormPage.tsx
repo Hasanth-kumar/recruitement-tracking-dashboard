@@ -16,6 +16,7 @@ import {
  mockGetCandidate,
  mockUpdateCandidate,
  mockUpdateCandidatePhoto,
+ mockDeleteCandidatePhoto,
  mockUpdateCandidateResume,
 } from '../candidateMock';
 import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
@@ -70,6 +71,15 @@ async function apiUploadPhoto(id: string, file: File) {
  if (!data.success) throw new Error(data.message);
 }
 
+async function apiDeletePhoto(id: string) {
+ const res = await fetch(`/api/candidates/${id}/photo`, {
+   method: 'DELETE',
+   headers: basicAuthFetchHeaders(false),
+ });
+ const data = await res.json();
+ if (!data.success) throw new Error(data.message);
+}
+
 async function apiUploadResume(id: string, file: File) {
  const fd = new FormData();
  fd.append('file', file);
@@ -87,14 +97,14 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[+]?[\d\s\-().]{7,15}$/;
 
 const s = {
- root: { fontFamily: "'IBM Plex Sans', sans-serif", background: '#f9f9f8' },
+ root: { fontFamily: "'IBM Plex Sans', sans-serif", background: 'var(--bg)' },
  body: { maxWidth: 1100, margin: '0 auto', padding: '2rem' },
  backBtn: {
    display: 'flex' as const,
    alignItems: 'center' as const,
    gap: 6,
    fontSize: '0.85rem',
-   color: '#6b6b65',
+   color: 'var(--text-secondary)',
    background: 'none',
    border: 'none',
    cursor: 'pointer' as const,
@@ -108,38 +118,38 @@ const s = {
    fontWeight: 500 as const,
    letterSpacing: '0.08em',
    textTransform: 'uppercase' as const,
-   color: '#b0b0a8',
+   color: 'var(--text-muted)',
    marginBottom: '0.3rem',
  },
- title: { fontSize: '1.35rem', fontWeight: 600 as const, color: '#1a1a18', margin: 0 },
+ title: { fontSize: '1.35rem', fontWeight: 600 as const, color: 'var(--text-primary)', margin: 0 },
  layout: { display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1rem', alignItems: 'start' as const },
  card: {
-   background: '#fff',
-   border: '1px solid #e4e4e0',
+   background: 'var(--surface)',
+   border: '1px solid var(--border)',
    borderRadius: 12,
    padding: '1.25rem',
    marginBottom: '1rem',
  },
- cardTitle: { fontSize: '1rem', fontWeight: 600 as const, color: '#1a1a18', margin: '0 0 0.2rem' },
- cardDesc: { fontSize: '0.82rem', color: '#6b6b65', marginBottom: '1rem' },
+ cardTitle: { fontSize: '1rem', fontWeight: 600 as const, color: 'var(--text-primary)', margin: '0 0 0.2rem' },
+ cardDesc: { fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1rem' },
  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.9rem' },
  field: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
  fieldFull: { gridColumn: '1 / -1', display: 'flex', flexDirection: 'column' as const, gap: 6 },
- label: { fontSize: '0.8rem', fontWeight: 500 as const, color: '#6b6b65' },
+ label: { fontSize: '0.8rem', fontWeight: 500 as const, color: 'var(--text-secondary)' },
  req: { color: '#dc2626' },
  errText: { fontSize: '0.75rem', color: '#dc2626' },
  actions: { display: 'flex', gap: 8, marginTop: '1rem' },
  sideCard: {
-   background: '#fff',
-   border: '1px solid #e4e4e0',
+   background: 'var(--surface)',
+   border: '1px solid var(--border)',
    borderRadius: 12,
    padding: '1rem',
    position: 'sticky' as const,
    top: '1rem',
  },
- sideTitle: { fontSize: '0.9rem', fontWeight: 600 as const, color: '#1a1a18', marginBottom: '0.7rem' },
- sideDivider: { height: 1, background: '#f0f0ed', margin: '0.75rem 0' },
- sideHint: { fontSize: '0.75rem', color: '#b0b0a8', margin: 0 },
+ sideTitle: { fontSize: '0.9rem', fontWeight: 600 as const, color: 'var(--text-primary)', marginBottom: '0.7rem' },
+ sideDivider: { height: 1, background: 'var(--border-subtle)', margin: '0.75rem 0' },
+ sideHint: { fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 },
 };
 
 function validate(
@@ -172,11 +182,17 @@ const CandidateFormPage: React.FC = () => {
  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
  const [resumeFile,   setResumeFile]   = useState<File | null>(null);
  const [resumeName,   setResumeName]   = useState<string | null>(null);
+ const [photoCleared, setPhotoCleared] = useState(false);
  const photoBlobRef = useRef<string | null>(null);
+ const initialHadPhotoRef = useRef(false);
 
  // ── Load candidate for edit mode ──────────────────────────────
  useEffect(() => {
-   if (!isEdit || !id) return;
+   if (!isEdit || !id) {
+     initialHadPhotoRef.current = false;
+     setPhotoCleared(false);
+     return;
+   }
 
    let cancelled = false;
 
@@ -208,6 +224,11 @@ const CandidateFormPage: React.FC = () => {
          experience: candidate.experience ?? '',
          notes:      candidate.notes ?? '',
        });
+
+       initialHadPhotoRef.current = USE_MOCK
+         ? Boolean(candidate.photoUrl)
+         : Boolean(candidate.hasPhoto);
+       setPhotoCleared(false);
 
        if (USE_MOCK) {
          if (candidate.photoUrl) setPhotoPreview(candidate.photoUrl);
@@ -277,6 +298,7 @@ const CandidateFormPage: React.FC = () => {
            notes:      form.notes.trim() || undefined,
          });
          if (photoFile && photoPreview) mockUpdateCandidatePhoto(id, photoPreview);
+         if (initialHadPhotoRef.current && photoCleared && !photoFile) mockDeleteCandidatePhoto(id);
          if (resumeFile)                mockUpdateCandidateResume(id, resumeFile.name);
          message.success('Candidate updated.');
        } else {
@@ -314,9 +336,13 @@ const CandidateFormPage: React.FC = () => {
          message.success(`Candidate added — ID: ${created.id}`);
        }
 
-       // Upload files after candidate is saved
+       // Upload or remove files after candidate is saved
        if (candidateId) {
-         if (photoFile)  await apiUploadPhoto(candidateId, photoFile);
+         if (photoFile) {
+           await apiUploadPhoto(candidateId, photoFile);
+         } else if (isEdit && initialHadPhotoRef.current && photoCleared) {
+           await apiDeletePhoto(candidateId);
+         }
          if (resumeFile) await apiUploadResume(candidateId, resumeFile);
        }
      }
@@ -335,7 +361,7 @@ const CandidateFormPage: React.FC = () => {
  if (loading) {
    return (
      <div style={{ ...s.root, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-       <p style={{ color: '#b0b0a8', fontSize: '0.9rem' }}>Loading candidate…</p>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading candidate…</p>
      </div>
    );
  }
@@ -387,7 +413,7 @@ const CandidateFormPage: React.FC = () => {
                    Full name <span style={s.req}>*</span>
                  </label>
                  <Input
-                   prefix={<UserOutlined style={{ color: '#b0b0a8' }} />}
+                  prefix={<UserOutlined style={{ color: 'var(--text-muted)' }} />}
                    placeholder="Jane Smith"
                    value={form.name}
                    onChange={e => onChange('name', e.target.value)}
@@ -403,7 +429,7 @@ const CandidateFormPage: React.FC = () => {
                    Email address <span style={s.req}>*</span>
                  </label>
                  <Input
-                   prefix={<MailOutlined style={{ color: '#b0b0a8' }} />}
+                  prefix={<MailOutlined style={{ color: 'var(--text-muted)' }} />}
                    placeholder="jane@example.com"
                    type="email"
                    value={form.email}
@@ -420,7 +446,7 @@ const CandidateFormPage: React.FC = () => {
                    Phone number <span style={s.req}>*</span>
                  </label>
                  <Input
-                   prefix={<PhoneOutlined style={{ color: '#b0b0a8' }} />}
+                  prefix={<PhoneOutlined style={{ color: 'var(--text-muted)' }} />}
                    placeholder="+1 555 000 0000"
                    value={form.phone}
                    onChange={e => onChange('phone', e.target.value)}
@@ -478,7 +504,7 @@ const CandidateFormPage: React.FC = () => {
                <div style={s.fieldFull}>
                  <label style={s.label}>
                    Notes{' '}
-                   <span style={{ color: '#b0b0a8', fontWeight: 400 }}>(optional)</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
                  </label>
                  <Input.TextArea
                    placeholder="Any additional notes about the candidate…"
@@ -529,12 +555,14 @@ const CandidateFormPage: React.FC = () => {
            <PhotoUpload
              value={photoPreview}
              onChange={(_file, preview) => {
+               setPhotoCleared(false);
                setPhotoFile(_file);
                setPhotoPreview(preview);
              }}
              onRemove={() => {
                setPhotoFile(null);
                setPhotoPreview(null);
+               setPhotoCleared(true);
              }}
            />
            <div style={s.sideDivider} />

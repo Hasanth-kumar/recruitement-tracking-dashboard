@@ -26,6 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -340,6 +341,59 @@ class DocumentServiceTest {
         ArgumentCaptor<CandidateDocument> captor = ArgumentCaptor.forClass(CandidateDocument.class);
         verify(candidateDocumentRepository).save(captor.capture());
         assertThat(captor.getValue().getId()).isEqualTo("photo-doc-1");
+    }
+
+    @Test
+    void deletePhotoShouldSoftDeleteDocumentAndRemoveFile() throws Exception {
+        String candidateId = "candidate-1";
+        Candidate candidate = new Candidate();
+        candidate.setId(candidateId);
+
+        Path photoFile = tempDir.resolve("photos").resolve(candidateId).resolve("old.png").normalize();
+        Files.createDirectories(photoFile.getParent());
+        Files.write(photoFile, createImageBytes("png", 4, 4));
+
+        CandidateDocument existing = new CandidateDocument();
+        existing.setId("photo-doc-1");
+        existing.setFilePath(photoFile.toString());
+
+        when(candidateRepository.findByIdAndDeletedFalse(candidateId)).thenReturn(Optional.of(candidate));
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse(
+                candidateId, CandidateDocumentType.PHOTO
+        )).thenReturn(Optional.of(existing));
+        when(candidateDocumentRepository.save(any(CandidateDocument.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        documentService.deletePhoto(candidateId);
+
+        assertThat(existing.isDeleted()).isTrue();
+        assertThat(Files.exists(photoFile)).isFalse();
+        verify(candidateDocumentRepository).save(existing);
+    }
+
+    @Test
+    void deletePhotoShouldNoopWhenNoPhotoDocument() {
+        String candidateId = "candidate-1";
+        Candidate candidate = new Candidate();
+        candidate.setId(candidateId);
+
+        when(candidateRepository.findByIdAndDeletedFalse(candidateId)).thenReturn(Optional.of(candidate));
+        when(candidateDocumentRepository.findByCandidateIdAndDocumentTypeAndDeletedFalse(
+                candidateId, CandidateDocumentType.PHOTO
+        )).thenReturn(Optional.empty());
+
+        documentService.deletePhoto(candidateId);
+
+        verify(candidateDocumentRepository, never()).save(any());
+    }
+
+    @Test
+    void deletePhotoShouldFailWhenCandidateDoesNotExist() {
+        when(candidateRepository.findByIdAndDeletedFalse("missing")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> documentService.deletePhoto("missing"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Candidate not found: missing");
     }
 
     private byte[] createImageBytes(String format, int width, int height) throws Exception {

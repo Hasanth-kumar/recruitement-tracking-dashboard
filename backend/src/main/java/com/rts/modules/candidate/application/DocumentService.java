@@ -151,6 +151,31 @@ public class DocumentService {
         return candidateDocumentRepository.save(document);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
+    @Transactional
+    public void deletePhoto(String candidateId) {
+        candidateRepository.findByIdAndDeletedFalse(candidateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found: " + candidateId));
+
+        Optional<CandidateDocument> existing = candidateDocumentRepository
+                .findByCandidateIdAndDocumentTypeAndDeletedFalse(candidateId, CandidateDocumentType.PHOTO);
+        if (existing.isEmpty()) {
+            return;
+        }
+
+        CandidateDocument document = existing.get();
+        Path path = Path.of(document.getFilePath()).normalize();
+        if (path.startsWith(uploadRootPath) && Files.isRegularFile(path)) {
+            try {
+                Files.delete(path);
+            } catch (IOException ignored) {
+                // Soft-delete the record even if the file is already gone or locked
+            }
+        }
+        document.setDeleted(true);
+        candidateDocumentRepository.save(document);
+    }
+
     private void validateResumeFile(MultipartFile resumeFile) {
         if (resumeFile == null || resumeFile.isEmpty()) {
             throw new ValidationException("Resume file is required");

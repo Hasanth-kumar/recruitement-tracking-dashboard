@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,6 +58,16 @@ public class DocumentController {
         CandidateDocument document = documentService.uploadPhoto(candidateId, file);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Photo uploaded successfully", DocumentUploadResponse.from(document)));
+    }
+
+    @Operation(
+            summary = "Delete candidate photo",
+            description = "Removes the stored photo for the candidate if one exists. Idempotent when no photo is on file."
+    )
+    @DeleteMapping(path = "/{id}/photo")
+    public ResponseEntity<ApiResponse<Object>> deletePhoto(@PathVariable("id") String candidateId) {
+        documentService.deletePhoto(candidateId);
+        return ResponseEntity.ok(ApiResponse.success("Photo deleted successfully", null));
     }
 
     @Operation(summary = "Download candidate photo", description = "Returns the stored photo bytes (JPG/PNG).")

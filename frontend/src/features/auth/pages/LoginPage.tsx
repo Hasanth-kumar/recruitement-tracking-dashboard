@@ -5,12 +5,15 @@ import {
   LockOutlined,
   EyeInvisibleOutlined,
   EyeTwoTone,
+  MoonOutlined,
+  SunOutlined,
 } from '@ant-design/icons';
 import { useAppDispatch } from '../../../shared/hooks/useAuth';
 import { credentialsReceived } from '../authSlice';
 import { mapToAuthUser } from '../authApi';
 import { encodeBasicAuth } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
+import { useAppTheme } from '../../../shared/theme/AppThemeProvider';
 import '../../../App.css';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -55,6 +58,7 @@ interface ApiEnvelope<T> {
 
 const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { themeMode, toggleTheme } = useAppTheme();
   const [form, setForm] = useState<FormState>({
     identifier: '',
     password: '',
@@ -172,6 +176,15 @@ const LoginPage: React.FC = () => {
       {/* Right form panel */}
       <main className="login-main">
         <div className="login-form-wrap">
+          <div className="login-theme-toggle-wrap">
+            <Button
+              type="text"
+              className="theme-toggle-btn"
+              icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+              onClick={toggleTheme}
+              aria-label={`Switch to ${themeMode === 'dark' ? 'light' : 'dark'} mode`}
+            />
+          </div>
 
           <div className="login-form-header">
             <p className="login-form-eyebrow">Welcome back</p>

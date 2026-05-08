@@ -69,12 +69,12 @@ const ResumeUpload: React.FC<Props> = ({ value, onChange, onRemove, disabled }) 
        <div style={{
          display: 'flex', alignItems: 'center', gap: 10,
          padding: '10px 14px',
-         background: '#f0f7ff',
-         border: '1px solid #bfdbfe',
+        background: 'var(--accent-subtle)',
+        border: '1px solid var(--border)',
          borderRadius: 8,
        }}>
-         <FileTextOutlined style={{ color: '#2563eb', fontSize: '1.1rem', flexShrink: 0 }} />
-         <span style={{ fontSize: '0.85rem', color: '#1a1a18', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <FileTextOutlined style={{ color: 'var(--accent)', fontSize: '1.1rem', flexShrink: 0 }} />
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
            {displayName}
          </span>
          {!disabled && (
@@ -82,7 +82,7 @@ const ResumeUpload: React.FC<Props> = ({ value, onChange, onRemove, disabled }) 
              <button
                type="button"
                onClick={() => fileRef.current?.click()}
-               style={{ fontSize: '0.75rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{ fontSize: '0.75rem', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
              >
                Replace
              </button>
@@ -106,20 +106,20 @@ const ResumeUpload: React.FC<Props> = ({ value, onChange, onRemove, disabled }) 
          onDragLeave={() => setDragOver(false)}
          onDrop={handleDrop}
          style={{
-           border: `1.5px dashed ${dragOver ? '#2563eb' : '#e4e4e0'}`,
+          border: `1.5px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
            borderRadius: 8,
            padding: '1.25rem',
            textAlign: 'center',
            cursor: disabled ? 'not-allowed' : 'pointer',
-           background: dragOver ? '#eff4ff' : '#fafafa',
+          background: dragOver ? 'var(--accent-subtle)' : 'var(--bg)',
            transition: 'all 150ms',
          }}
        >
-         <PaperClipOutlined style={{ fontSize: '1.4rem', color: '#b0b0a8', display: 'block', marginBottom: 6 }} />
-         <p style={{ fontSize: '0.85rem', color: '#6b6b65', margin: '0 0 2px' }}>
+        <PaperClipOutlined style={{ fontSize: '1.4rem', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }} />
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 2px' }}>
            Click or drag file here
          </p>
-         <p style={{ fontSize: '0.75rem', color: '#b0b0a8', margin: 0 }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
            PDF, DOC, DOCX · Max 5 MB
          </p>
        </div>

@@ -54,23 +54,23 @@ const StageUpdateModal: React.FC<Props> = ({ candidate, onConfirm, onClose, load
            alignItems:   'center',
            gap:          10,
            padding:      '10px 12px',
-           background:   '#f9f9f8',
+          background:   'var(--bg)',
            borderRadius: 8,
            marginBottom: '1.25rem',
          }}>
            <div style={{
              width: 36, height: 36, borderRadius: '50%',
-             background: '#eff4ff', display: 'flex', alignItems: 'center',
-             justifyContent: 'center', fontWeight: 600, color: '#2563eb',
+            background: 'var(--accent-subtle)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontWeight: 600, color: 'var(--accent)',
              fontSize: '0.85rem', flexShrink: 0,
            }}>
              {candidate.name[0].toUpperCase()}
            </div>
            <div>
-             <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', color: '#1a1a18' }}>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                {candidate.name}
              </p>
-             <p style={{ margin: 0, fontSize: '0.775rem', color: '#b0b0a8' }}>
+            <p style={{ margin: 0, fontSize: '0.775rem', color: 'var(--text-muted)' }}>
                {candidate.position}
              </p>
            </div>
@@ -78,14 +78,14 @@ const StageUpdateModal: React.FC<Props> = ({ candidate, onConfirm, onClose, load
 
          {/* Current → New */}
          <div style={{ marginBottom: '1rem' }}>
-           <p style={{ fontSize: '0.78rem', fontWeight: 500, color: '#6b6b65', marginBottom: 6 }}>
+          <p style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
              Current stage
            </p>
            <StatusBadge stage={candidate.stage} />
          </div>
 
          <div style={{ marginBottom: '1rem' }}>
-           <p style={{ fontSize: '0.78rem', fontWeight: 500, color: '#6b6b65', marginBottom: 6 }}>
+          <p style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
              New stage
            </p>
            <Select

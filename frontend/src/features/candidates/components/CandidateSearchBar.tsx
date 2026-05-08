@@ -18,11 +18,11 @@ const CandidateSearchBar: React.FC<Props> = ({
 }) => {
  return (
    <Input
-     prefix={<SearchOutlined style={{ color: '#b0b0a8', fontSize: '0.9rem' }} />}
+     prefix={<SearchOutlined style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }} />}
      suffix={
        value
          ? <CloseCircleOutlined
-             style={{ color: '#b0b0a8', cursor: 'pointer', fontSize: '0.85rem' }}
+             style={{ color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.85rem' }}
              onClick={() => onChange('')}
            />
          : null

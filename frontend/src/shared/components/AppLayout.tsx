@@ -9,10 +9,13 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MoonOutlined,
+  SunOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Role } from '../../constants/roles';
+import { useAppTheme } from '../theme/AppThemeProvider';
 import '../../App.css';
 
 const { Sider, Content, Header } = Layout;
@@ -25,6 +28,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, role, hasRole } = useAuth();
+  const { themeMode, toggleTheme } = useAppTheme();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
@@ -146,6 +150,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         {/* Header */}
         <Header className="app-layout-header">
           <div className="app-layout-header-spacer" />
+          <Button
+            type="text"
+            className="theme-toggle-btn"
+            icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+            onClick={toggleTheme}
+            aria-label={`Switch to ${themeMode === 'dark' ? 'light' : 'dark'} mode`}
+          />
 
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
             <Space className="app-layout-user-menu" style={{ cursor: 'pointer' }}>

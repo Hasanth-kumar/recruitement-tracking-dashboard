@@ -38,7 +38,7 @@ const ALL_STAGES = Object.entries(STAGE_LABELS).map(([value, label]) => ({
 
 const s = {
  wrap:      { display: 'flex' as const, alignItems: 'center' as const, gap: 8, flexWrap: 'wrap' as const },
- label:     { fontSize: '0.78rem', fontWeight: 500 as const, color: '#6b6b65', whiteSpace: 'nowrap' as const },
+ label:     { fontSize: '0.78rem', fontWeight: 500 as const, color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const },
  badge:     {
    display:        'inline-flex' as const,
    alignItems:     'center' as const,
@@ -92,19 +92,19 @@ const CandidateFilterPanel: React.FC<Props> = ({ filters, onChange, onReset, act
 
      {/* Date from */}
      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-       <span style={{ fontSize: '0.78rem', color: '#b0b0a8' }}>From</span>
+       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>From</span>
        <input
          type="date"
          value={filters.dateFrom}
          onChange={e => set('dateFrom', e.target.value)}
          style={{
-           border:       '1px solid #e4e4e0',
+           border:       '1px solid var(--border)',
            borderRadius: 8,
            padding:      '4px 8px',
            fontSize:     '0.825rem',
            fontFamily:   "'IBM Plex Sans', sans-serif",
-           color:        '#1a1a18',
-           background:   '#fff',
+           color:        'var(--text-primary)',
+           background:   'var(--surface)',
            cursor:       'pointer',
            outline:      'none',
          }}
@@ -113,19 +113,19 @@ const CandidateFilterPanel: React.FC<Props> = ({ filters, onChange, onReset, act
 
      {/* Date to */}
      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-       <span style={{ fontSize: '0.78rem', color: '#b0b0a8' }}>To</span>
+       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>To</span>
        <input
          type="date"
          value={filters.dateTo}
          onChange={e => set('dateTo', e.target.value)}
          style={{
-           border:       '1px solid #e4e4e0',
+           border:       '1px solid var(--border)',
            borderRadius: 8,
            padding:      '4px 8px',
            fontSize:     '0.825rem',
            fontFamily:   "'IBM Plex Sans', sans-serif",
-           color:        '#1a1a18',
-           background:   '#fff',
+           color:        'var(--text-primary)',
+           background:   'var(--surface)',
            cursor:       'pointer',
            outline:      'none',
          }}
@@ -140,8 +140,8 @@ const CandidateFilterPanel: React.FC<Props> = ({ filters, onChange, onReset, act
          onClick={onReset}
          style={{
            fontSize:     '0.775rem',
-           color:        '#6b6b65',
-           border:       '1px solid #e4e4e0',
+           color:        'var(--text-secondary)',
+           border:       '1px solid var(--border)',
            borderRadius: 6,
            height:       30,
          }}

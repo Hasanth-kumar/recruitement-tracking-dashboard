@@ -47,30 +47,30 @@ function formatDate(iso: string): string {
 
 // ── Styles ──────────────────────────────────────────────────────
 const s = {
- wrap:       { background: '#fff', border: '1px solid #e4e4e0', borderRadius: 12, overflow: 'hidden' as const },
+ wrap:       { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' as const },
  table:      { width: '100%', borderCollapse: 'collapse' as const, fontSize: '0.875rem', fontFamily: "'IBM Plex Sans', sans-serif" },
- thead:      { background: '#f9f9f8', borderBottom: '1px solid #e4e4e0' },
- th:         { padding: '10px 14px', textAlign: 'left' as const, fontSize: '0.72rem', fontWeight: 600 as const, color: '#6b6b65', letterSpacing: '0.06em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const },
- thSort:     { cursor: 'pointer' as const, userSelect: 'none' as const, padding: '10px 14px', textAlign: 'left' as const, fontSize: '0.72rem', fontWeight: 600 as const, color: '#6b6b65', letterSpacing: '0.06em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const },
- thSortActive: { color: '#2563eb' },
- td:         { padding: '12px 14px', verticalAlign: 'middle' as const, borderBottom: '1px solid #f0f0ed' },
+ thead:      { background: 'var(--bg)', borderBottom: '1px solid var(--border)' },
+ th:         { padding: '10px 14px', textAlign: 'left' as const, fontSize: '0.72rem', fontWeight: 600 as const, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const },
+ thSort:     { cursor: 'pointer' as const, userSelect: 'none' as const, padding: '10px 14px', textAlign: 'left' as const, fontSize: '0.72rem', fontWeight: 600 as const, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const },
+ thSortActive: { color: 'var(--accent)' },
+ td:         { padding: '12px 14px', verticalAlign: 'middle' as const, borderBottom: '1px solid var(--border-subtle)' },
  tdLast:     { padding: '12px 14px', verticalAlign: 'middle' as const },
  nameWrap:   { display: 'flex' as const, alignItems: 'center' as const, gap: 10 },
  avatar:     { width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' as const, flexShrink: 0 },
- avatarFb:   { width: 34, height: 34, borderRadius: '50%', background: '#eff4ff', display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const, fontSize: '0.8rem', fontWeight: 600 as const, color: '#2563eb', flexShrink: 0 },
- nameText:   { fontWeight: 500 as const, color: '#1a1a18', margin: 0, lineHeight: 1.3 },
- emailText:  { fontSize: '0.75rem', color: '#b0b0a8', margin: 0 },
- bodyText:   { color: '#6b6b65', margin: 0 },
+ avatarFb:   { width: 34, height: 34, borderRadius: '50%', background: 'var(--accent-subtle)', display: 'flex' as const, alignItems: 'center' as const, justifyContent: 'center' as const, fontSize: '0.8rem', fontWeight: 600 as const, color: 'var(--accent)', flexShrink: 0 },
+ nameText:   { fontWeight: 500 as const, color: 'var(--text-primary)', margin: 0, lineHeight: 1.3 },
+ emailText:  { fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 },
+ bodyText:   { color: 'var(--text-secondary)', margin: 0 },
  actions:    { display: 'flex' as const, gap: 4, alignItems: 'center' as const, justifyContent: 'flex-end' as const },
- emptyRow:   { textAlign: 'center' as const, padding: '3rem', color: '#b0b0a8', fontSize: '0.875rem' },
+ emptyRow:   { textAlign: 'center' as const, padding: '3rem', color: 'var(--text-muted)', fontSize: '0.875rem' },
  checkbox:   { width: 15, height: 15, cursor: 'pointer' as const, accentColor: '#2563eb' },
 };
 
 const SortIcon: React.FC<{ field: SortField; sortState: SortState }> = ({ field, sortState }) => {
- if (sortState.field !== field) return <span style={{ color: '#d1d5db', marginLeft: 4 }}>↕</span>;
+ if (sortState.field !== field) return <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>↕</span>;
  return sortState.dir === 'asc'
-   ? <ArrowUpOutlined style={{ color: '#2563eb', marginLeft: 4, fontSize: '0.7rem' }} />
-   : <ArrowDownOutlined style={{ color: '#2563eb', marginLeft: 4, fontSize: '0.7rem' }} />;
+   ? <ArrowUpOutlined style={{ color: 'var(--accent)', marginLeft: 4, fontSize: '0.7rem' }} />
+   : <ArrowDownOutlined style={{ color: 'var(--accent)', marginLeft: 4, fontSize: '0.7rem' }} />;
 };
 
 // ── Component ───────────────────────────────────────────────────
@@ -157,7 +157,7 @@ canManageCandidates,
                return (
                  <tr
                    key={c.id}
-                   style={{ background: isSelected ? '#f8faff' : '#fff', transition: 'background 100ms' }}
+                   style={{ background: isSelected ? 'var(--accent-subtle)' : 'var(--surface)', transition: 'background 100ms' }}
                  >
                    {/* Checkbox */}
                    <td style={{ ...rowTd, width: 40, paddingRight: 0 }}>
@@ -194,7 +194,7 @@ canManageCandidates,
 
                    {/* Experience */}
                    <td style={rowTd}>
-                     <p style={{ ...s.bodyText, color: '#b0b0a8' }}>{c.experience}</p>
+                     <p style={{ ...s.bodyText, color: 'var(--text-muted)' }}>{c.experience}</p>
                    </td>
 
                    {/* Stage badge */}
@@ -204,7 +204,7 @@ canManageCandidates,
 
                    {/* Applied date */}
                    <td style={rowTd}>
-                     <p style={{ ...s.bodyText, color: '#b0b0a8', fontSize: '0.825rem' }}>
+                     <p style={{ ...s.bodyText, color: 'var(--text-muted)', fontSize: '0.825rem' }}>
                        {formatDate(c.createdAt)}
                      </p>
                    </td>
@@ -219,7 +219,7 @@ canManageCandidates,
                          icon={<EyeOutlined />}
                          title="View details"
                          onClick={() => navigate(`/candidates/${c.id}`)}
-                         style={{ color: '#6b6b65' }}
+                         style={{ color: 'var(--text-secondary)' }}
                        />
                       {canManageCandidates && (
                         <>
@@ -229,14 +229,14 @@ canManageCandidates,
                             icon={<EditOutlined />}
                             title="Edit candidate"
                             onClick={() => navigate(`/candidates/${c.id}/edit`)}
-                            style={{ color: '#6b6b65' }}
+                            style={{ color: 'var(--text-secondary)' }}
                           />
                           <Button
                             type="text"
                             size="small"
                             title="Update stage"
                             onClick={() => onStageUpdate(c)}
-                            style={{ color: '#6b6b65', fontSize: '0.75rem', fontWeight: 500, padding: '0 6px' }}
+                            style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 500, padding: '0 6px' }}
                           >
                             Stage
                           </Button>
@@ -277,9 +277,9 @@ canManageCandidates,
        onCancel={() => setDeleteTarget(null)}
        width={400}
      >
-       <p style={{ fontSize: '0.9rem', color: '#6b6b65', margin: 0 }}>
+      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
          Are you sure you want to delete{' '}
-         <strong style={{ color: '#1a1a18' }}>{deleteTarget?.name}</strong>?
+        <strong style={{ color: 'var(--text-primary)' }}>{deleteTarget?.name}</strong>?
          This action marks the record as inactive and cannot be undone.
        </p>
      </Modal>
