@@ -119,7 +119,7 @@ const AdminUsersPage: React.FC = () => {
       style={{
         fontFamily: "'IBM Plex Sans', sans-serif",
         minHeight: '100vh',
-        background: '#f9f9f8',
+        background: 'var(--bg)',
         padding: '2rem',
       }}
     >
@@ -138,7 +138,7 @@ const AdminUsersPage: React.FC = () => {
           locale={{ emptyText: 'No users found' }}
         />
         <div style={{ marginTop: 24 }}>
-          <a href="/dashboard" style={{ color: '#2563eb' }}>
+          <a href="/dashboard" style={{ color: 'var(--accent)' }}>
             ← Back to dashboard
           </a>
         </div>

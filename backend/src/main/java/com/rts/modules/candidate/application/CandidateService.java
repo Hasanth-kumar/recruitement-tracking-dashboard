@@ -2,6 +2,7 @@ package com.rts.modules.candidate.application;
 
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
+import com.rts.modules.candidate.api.dto.BulkStageUpdateResponse;
 import com.rts.modules.candidate.api.dto.StageHistoryResponse;
 import com.rts.modules.candidate.api.dto.UpdateCandidateRequest;
 import com.rts.modules.candidate.api.dto.UpdateStageRequest;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -180,6 +182,53 @@ public class CandidateService {
         stageHistoryRepository.save(stageHistory);
 
         return toResponseWithDocumentFlags(savedCandidate);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
+    @Transactional
+    public BulkStageUpdateResponse bulkUpdateStage(List<String> candidateIds, RecruitmentStage targetStage) {
+        if (candidateIds == null || candidateIds.isEmpty()) {
+            throw new ValidationException("Candidate IDs are required");
+        }
+        LinkedHashSet<String> uniqueIds = candidateIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        if (uniqueIds.isEmpty()) {
+            throw new ValidationException("At least one valid candidate ID is required");
+        }
+
+        List<Candidate> candidates = candidateRepository.findByIdInAndDeletedFalse(uniqueIds);
+        if (candidates.size() != uniqueIds.size()) {
+            throw new ResourceNotFoundException("One or more candidates were not found");
+        }
+
+        String changedBy = resolveAuthenticatedUser();
+        LocalDateTime changedAt = LocalDateTime.now();
+        List<StageHistory> historyEntries = new ArrayList<>();
+        List<String> updatedIds = new ArrayList<>();
+
+        for (Candidate candidate : candidates) {
+            if (candidate.getStage() == targetStage) {
+                continue;
+            }
+            candidate.setStage(targetStage);
+            updatedIds.add(candidate.getId());
+
+            StageHistory stageHistory = new StageHistory();
+            stageHistory.setCandidateId(candidate.getId());
+            stageHistory.setStage(targetStage);
+            stageHistory.setChangedAt(changedAt);
+            stageHistory.setChangedBy(changedBy);
+            historyEntries.add(stageHistory);
+        }
+
+        candidateRepository.saveAll(candidates);
+        if (!historyEntries.isEmpty()) {
+            stageHistoryRepository.saveAll(historyEntries);
+        }
+
+        return new BulkStageUpdateResponse(uniqueIds.size(), updatedIds.size(), updatedIds);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")

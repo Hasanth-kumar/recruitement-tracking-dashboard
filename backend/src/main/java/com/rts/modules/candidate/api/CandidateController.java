@@ -2,6 +2,8 @@ package com.rts.modules.candidate.api;
 
 import com.rts.modules.candidate.api.dto.CandidateResponse;
 import com.rts.modules.candidate.api.dto.CreateCandidateRequest;
+import com.rts.modules.candidate.api.dto.BulkStageUpdateRequest;
+import com.rts.modules.candidate.api.dto.BulkStageUpdateResponse;
 import com.rts.modules.candidate.api.dto.StageHistoryResponse;
 import com.rts.modules.candidate.api.dto.UpdateCandidateRequest;
 import com.rts.modules.candidate.api.dto.UpdateStageRequest;
@@ -116,5 +118,14 @@ public class CandidateController {
     public ResponseEntity<ApiResponse<List<StageHistoryResponse>>> getStageHistory(@PathVariable String id) {
         List<StageHistoryResponse> history = candidateService.getStageHistory(id);
         return ResponseEntity.ok(ApiResponse.success("Stage history retrieved successfully", history));
+    }
+
+    @Operation(summary = "Bulk update candidate stage", description = "Updates stage for multiple candidates and logs individual history records.")
+    @PostMapping("/bulk-stage")
+    public ResponseEntity<ApiResponse<BulkStageUpdateResponse>> bulkStageUpdate(
+            @Valid @RequestBody BulkStageUpdateRequest request
+    ) {
+        BulkStageUpdateResponse response = candidateService.bulkUpdateStage(request.candidateIds(), request.stage());
+        return ResponseEntity.ok(ApiResponse.success("Bulk stage update completed successfully", response));
     }
 }

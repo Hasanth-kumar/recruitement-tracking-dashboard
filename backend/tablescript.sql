@@ -66,6 +66,38 @@ CREATE TABLE IF NOT EXISTS stage_history (
     CONSTRAINT fk_stage_history_candidate FOREIGN KEY (candidate_id) REFERENCES candidates (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS interviews (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    candidate_id VARCHAR(36) NOT NULL,
+    round VARCHAR(20) NOT NULL,
+    date_time DATETIME NOT NULL,
+    duration_minutes INT NOT NULL,
+    meeting_link VARCHAR(500) NULL,
+    notes VARCHAR(1000) NULL,
+    status VARCHAR(20) NOT NULL,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_interviews_candidate FOREIGN KEY (candidate_id) REFERENCES candidates (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS interview_interviewers (
+    interview_id VARCHAR(36) NOT NULL,
+    interviewer_username VARCHAR(100) NOT NULL,
+    CONSTRAINT fk_interview_interviewers_interview FOREIGN KEY (interview_id) REFERENCES interviews (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    user_id VARCHAR(100) NOT NULL,
+    message VARCHAR(500) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Optional seed admin (password: Admin@123). BCrypt strength 12, Spring-compatible ($2a$).
 -- With the default app profile, DataSeeder also creates this user if missing.
 INSERT INTO users (id, username, email, password, role, is_deleted, created_by, updated_by)

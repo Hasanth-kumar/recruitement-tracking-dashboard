@@ -64,6 +64,16 @@ async function apiUpdateStage(id: string, stage: RecruitmentStage): Promise<void
   if (!data.success) throw new Error(data.message);
 }
 
+async function apiBulkUpdateStage(ids: string[], stage: RecruitmentStage): Promise<void> {
+  const res = await fetch('/api/candidates/bulk-stage', {
+    method: 'POST',
+    headers: basicAuthFetchHeaders(true),
+    body: JSON.stringify({ candidateIds: ids, stage }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message);
+}
+
 async function apiDeleteCandidate(id: string): Promise<void> {
   const res = await fetch(`/api/candidates/${id}`, {
     method: 'DELETE',
@@ -252,7 +262,7 @@ const CandidateListPage: React.FC = () => {
           prev.map(c => (ids.includes(c.id) ? { ...c, stage: newStage } : c)),
         );
       } else {
-        await Promise.all(ids.map(id => apiUpdateStage(id, newStage)));
+        await apiBulkUpdateStage(ids, newStage);
         await loadServerCandidates();
       }
       message.success(`${ids.length} candidate${ids.length !== 1 ? 's' : ''} updated.`);

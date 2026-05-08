@@ -340,4 +340,80 @@ class CandidateServiceTest {
 
         verify(candidateRepository).findAll(org.mockito.ArgumentMatchers.<Specification<Candidate>>any(), any(Pageable.class));
     }
+
+    @Test
+    void bulkUpdateStageShouldUpdateOnlyChangedCandidatesAndWriteHistory() {
+        Candidate c1 = new Candidate();
+        c1.setId("c-1");
+        c1.setStage(RecruitmentStage.APPLICATION_RECEIVED);
+        Candidate c2 = new Candidate();
+        c2.setId("c-2");
+        c2.setStage(RecruitmentStage.SHORTLISTED);
+
+        when(candidateRepository.findByIdInAndDeletedFalse(anyCollection())).thenReturn(List.of(c1, c2));
+        when(candidateRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated("hr.user", null, List.of())
+        );
+
+        var response = candidateService.bulkUpdateStage(
+                List.of("c-1", "c-2"),
+                RecruitmentStage.R1_SCHEDULED
+        );
+
+        assertThat(response.requestedCount()).isEqualTo(2);
+        assertThat(response.updatedCount()).isEqualTo(2);
+        assertThat(response.updatedCandidateIds()).containsExactly("c-1", "c-2");
+        assertThat(c1.getStage()).isEqualTo(RecruitmentStage.R1_SCHEDULED);
+        assertThat(c2.getStage()).isEqualTo(RecruitmentStage.R1_SCHEDULED);
+        verify(stageHistoryRepository).saveAll(any());
+    }
+
+    @Test
+    void bulkUpdateStageShouldSkipCandidatesAlreadyInTargetStage() {
+        Candidate c1 = new Candidate();
+        c1.setId("c-1");
+        c1.setStage(RecruitmentStage.R1_SCHEDULED);
+        Candidate c2 = new Candidate();
+        c2.setId("c-2");
+        c2.setStage(RecruitmentStage.SHORTLISTED);
+
+        when(candidateRepository.findByIdInAndDeletedFalse(anyCollection())).thenReturn(List.of(c1, c2));
+        when(candidateRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = candidateService.bulkUpdateStage(
+                List.of("c-1", "c-2"),
+                RecruitmentStage.R1_SCHEDULED
+        );
+
+        assertThat(response.requestedCount()).isEqualTo(2);
+        assertThat(response.updatedCount()).isEqualTo(1);
+        assertThat(response.updatedCandidateIds()).containsExactly("c-2");
+    }
+
+    @Test
+    void bulkUpdateStageShouldFailWhenAnyCandidateIsMissing() {
+        Candidate c1 = new Candidate();
+        c1.setId("c-1");
+        c1.setStage(RecruitmentStage.APPLICATION_RECEIVED);
+
+        when(candidateRepository.findByIdInAndDeletedFalse(anyCollection())).thenReturn(List.of(c1));
+
+        assertThatThrownBy(() -> candidateService.bulkUpdateStage(
+                List.of("c-1", "missing"),
+                RecruitmentStage.R1_SCHEDULED
+        ))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("One or more candidates were not found");
+    }
+
+    @Test
+    void bulkUpdateStageShouldFailForBlankIdsOnly() {
+        assertThatThrownBy(() -> candidateService.bulkUpdateStage(
+                List.of(" ", "   "),
+                RecruitmentStage.R1_SCHEDULED
+        ))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("At least one valid candidate ID is required");
+    }
 }
