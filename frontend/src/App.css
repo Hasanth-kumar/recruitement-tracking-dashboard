@@ -352,56 +352,6 @@ a:hover { text-decoration: underline; }
  border-color: #fca5a5 !important;
 }
 
-/* Dev divider + role pills */
-.login-divider {
- display: flex;
- align-items: center;
- gap: 10px;
- margin: 1.1rem 0;
- animation: fadeUp 0.3s 0.15s ease both;
-}
-
-.login-divider-line {
- flex: 1;
- height: 1px;
- background: var(--border);
-}
-
-.login-divider-text {
- font-size: 0.7rem;
- color: var(--text-muted);
- letter-spacing: 0.06em;
- text-transform: uppercase;
- white-space: nowrap;
-}
-
-.login-role-pills {
- display: flex;
- flex-wrap: wrap;
- gap: 6px;
- animation: fadeUp 0.3s 0.2s ease both;
-}
-
-.login-role-pill {
- padding: 3px 11px;
- border-radius: 99px;
- border: 1px solid var(--border);
- background: var(--surface);
- font-size: 0.75rem;
- font-weight: 500;
- color: var(--text-secondary);
- cursor: pointer;
- transition: all var(--transition);
- font-family: var(--font-sans);
-}
-
-.login-role-pill:hover,
-.login-role-pill.active {
- border-color: var(--accent);
- color: var(--accent);
- background: var(--accent-subtle);
-}
-
 .login-footer-note {
  margin-top: 1.25rem;
  text-align: center;

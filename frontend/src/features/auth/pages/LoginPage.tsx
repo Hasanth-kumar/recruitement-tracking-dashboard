@@ -21,18 +21,6 @@ interface FormState {
   rememberMe: boolean;
 }
 
-interface RolePreset {
-  label: string;
-  identifier: string;
-}
-
-const ROLE_PRESETS: RolePreset[] = [
-  { label: 'Admin', identifier: 'admin@rts.com' },
-  { label: 'HR Manager', identifier: 'hr@rts.com' },
-  { label: 'Recruiter', identifier: 'recruiter@rts.com' },
-  { label: 'Interviewer', identifier: 'interviewer@rts.com' },
-];
-
 // ── Mock login (remove once backend is ready) ──────────────────
 
 const USE_MOCK = false;
@@ -74,16 +62,9 @@ const LoginPage: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   const handleChange = (field: keyof FormState, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));
-    if (error) setError(null);
-  };
-
-  const applyPreset = (preset: RolePreset) => {
-    setForm(prev => ({ ...prev, identifier: preset.identifier, password: 'Password@123' }));
-    setActivePreset(preset.identifier);
     if (error) setError(null);
   };
 
@@ -271,26 +252,6 @@ const LoginPage: React.FC = () => {
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
-          </div>
-
-          {/* Role quick-fill */}
-          <div className="login-divider">
-            <div className="login-divider-line" />
-            <span className="login-divider-text">Quick fill</span>
-            <div className="login-divider-line" />
-          </div>
-
-          <div className="login-role-pills">
-            {ROLE_PRESETS.map(p => (
-              <button
-                key={p.identifier}
-                type="button"
-                className={`login-role-pill ${activePreset === p.identifier ? 'active' : ''}`}
-                onClick={() => applyPreset(p)}
-              >
-                {p.label}
-              </button>
-            ))}
           </div>
 
           {/* <p className="login-footer-note">

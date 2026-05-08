@@ -209,13 +209,4 @@ describe('LoginPage Tests', () => {
     });
   });
 
-  test('preset buttons autofill fields', () => {
-    renderLogin();
-
-    const adminBtn = screen.getByText('Admin');
-    fireEvent.click(adminBtn);
-
-    expect(screen.getByPlaceholderText('you@company.com')).toHaveValue('admin@rts.com');
-    expect(screen.getByPlaceholderText('••••••••')).toHaveValue('Password@123');
-  });
 });
