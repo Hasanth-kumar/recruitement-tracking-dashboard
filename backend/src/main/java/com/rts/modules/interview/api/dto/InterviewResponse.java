@@ -14,6 +14,7 @@ public record InterviewResponse(
         LocalDateTime dateTime,
         Integer durationMinutes,
         String meetingLink,
+        String location,
         String notes,
         InterviewStatus status,
         List<String> interviewerUsernames
@@ -26,6 +27,7 @@ public record InterviewResponse(
                 interview.getDateTime(),
                 interview.getDurationMinutes(),
                 interview.getMeetingLink(),
+                interview.getLocation(),
                 interview.getNotes(),
                 interview.getStatus(),
                 interview.getInterviewerUsernames()

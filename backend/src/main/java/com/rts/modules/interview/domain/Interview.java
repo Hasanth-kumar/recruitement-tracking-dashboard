@@ -34,6 +34,9 @@ public class Interview extends BaseEntity {
     @Column(name = "meeting_link", length = 500)
     private String meetingLink;
 
+    @Column(name = "location", length = 255)
+    private String location;
+
     @Column(name = "notes", length = 1000)
     private String notes;
 
@@ -92,6 +95,14 @@ public class Interview extends BaseEntity {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public InterviewStatus getStatus() {

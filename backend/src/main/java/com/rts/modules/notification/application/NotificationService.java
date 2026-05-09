@@ -35,8 +35,8 @@ public class NotificationService {
             notification.setType(NotificationType.INTERVIEW_SCHEDULED);
             notification.setRead(false);
             notification.setMessage(
-                    "Round 1 interview scheduled for candidate %s at %s (%d mins)."
-                            .formatted(event.candidateId(), scheduledFor, event.durationMinutes())
+                    "%s interview scheduled for candidate %s at %s (%d mins)."
+                            .formatted(event.round().name().replace('_', ' '), event.candidateId(), scheduledFor, event.durationMinutes())
             );
             notifications.add(notification);
         }

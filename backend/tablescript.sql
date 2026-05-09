@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS interviews (
     date_time DATETIME NOT NULL,
     duration_minutes INT NOT NULL,
     meeting_link VARCHAR(500) NULL,
+    location VARCHAR(255) NULL,
     notes VARCHAR(1000) NULL,
     status VARCHAR(20) NOT NULL,
     is_deleted TINYINT(1) NOT NULL DEFAULT 0,
