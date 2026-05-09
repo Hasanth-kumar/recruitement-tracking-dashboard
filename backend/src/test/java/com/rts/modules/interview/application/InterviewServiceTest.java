@@ -13,6 +13,7 @@ import com.rts.modules.interview.domain.InterviewStatus;
 import com.rts.modules.interview.persistence.InterviewRepository;
 import com.rts.shared.events.InterviewScheduledEvent;
 import com.rts.shared.exception.ConflictException;
+import com.rts.shared.exception.ResourceNotFoundException;
 import com.rts.shared.exception.ValidationException;
 import com.rts.shared.kernel.RecruitmentStage;
 import org.junit.jupiter.api.BeforeEach;
@@ -146,6 +147,26 @@ class InterviewServiceTest {
         verify(interviewRepository, never()).save(any(Interview.class));
         verify(stageHistoryRepository, never()).save(any(StageHistory.class));
         verify(applicationEventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void scheduleRoundTwoShouldFailWhenCandidateMissing() {
+        ScheduleRoundTwoInterviewRequest request = new ScheduleRoundTwoInterviewRequest(
+                "missing-id",
+                LocalDateTime.now().plusDays(2),
+                30,
+                "Room X",
+                List.of("interviewer.b"),
+                null
+        );
+
+        when(candidateRepository.findByIdAndDeletedFalse("missing-id")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> interviewService.scheduleRoundTwo(request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Candidate not found: missing-id");
+
+        verify(interviewRepository, never()).save(any(Interview.class));
     }
 
     @Test
@@ -306,6 +327,18 @@ class InterviewServiceTest {
         assertThat(result.get(0).id()).isEqualTo("int-1");
         assertThat(result.get(1).id()).isEqualTo("int-2");
         verify(interviewRepository).findSchedule(InterviewStatus.SCHEDULED, from, to, "interviewer.a");
+    }
+
+    @Test
+    void getScheduleShouldTreatBlankInterviewerAsUnfiltered() {
+        LocalDateTime from = LocalDateTime.of(2026, 5, 22, 8, 0);
+        LocalDateTime to = LocalDateTime.of(2026, 5, 22, 20, 0);
+
+        when(interviewRepository.findSchedule(InterviewStatus.SCHEDULED, from, to, null)).thenReturn(List.of());
+
+        interviewService.getSchedule(from, to, "   ");
+
+        verify(interviewRepository).findSchedule(InterviewStatus.SCHEDULED, from, to, null);
     }
 
     @Test
