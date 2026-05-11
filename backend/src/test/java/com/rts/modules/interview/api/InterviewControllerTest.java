@@ -1,8 +1,12 @@
 package com.rts.modules.interview.api;
 
 import com.rts.modules.interview.api.dto.InterviewResponse;
+import com.rts.modules.interview.api.dto.CancelInterviewRequest;
+import com.rts.modules.interview.api.dto.RescheduleInterviewRequest;
 import com.rts.modules.interview.api.dto.ScheduleRoundTwoInterviewRequest;
+import com.rts.modules.interview.application.InterviewPhotoService;
 import com.rts.modules.interview.application.InterviewService;
+import com.rts.modules.interview.domain.InterviewPhoto;
 import com.rts.modules.interview.domain.InterviewRound;
 import com.rts.modules.interview.domain.InterviewStatus;
 import com.rts.shared.exception.GlobalExceptionHandler;
@@ -23,7 +27,10 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +44,9 @@ class InterviewControllerTest {
 
     @MockBean
     private InterviewService interviewService;
+
+    @MockBean
+    private InterviewPhotoService interviewPhotoService;
 
     @Test
     void getScheduleShouldRequireDateRangeParams() throws Exception {
@@ -132,6 +142,96 @@ class InterviewControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value("r2-new"))
                 .andExpect(jsonPath("$.data.round").value("ROUND_2"));
+    }
+
+    @Test
+    void rescheduleInterviewShouldAcceptJsonBody() throws Exception {
+        InterviewResponse response = new InterviewResponse(
+                "int-rs-1",
+                "candidate-1",
+                InterviewRound.ROUND_1,
+                LocalDateTime.of(2026, 7, 12, 10, 0),
+                60,
+                "https://meet.google.com/new-link",
+                null,
+                "Replanned agenda",
+                InterviewStatus.SCHEDULED,
+                List.of("alice", "bob")
+        );
+
+        when(interviewService.rescheduleInterview(eq("int-rs-1"), any(RescheduleInterviewRequest.class)))
+                .thenReturn(response);
+
+        String body = """
+                {
+                  "dateTime": "2026-07-12T10:00:00",
+                  "durationMinutes": 60,
+                  "interviewerUsernames": ["alice", "bob"],
+                  "meetingLink": "https://meet.google.com/new-link",
+                  "notes": "Replanned agenda",
+                  "rescheduleReason": "Interviewer slot overlap"
+                }
+                """;
+
+        mockMvc.perform(put("/api/interviews/int-rs-1/reschedule")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value("int-rs-1"))
+                .andExpect(jsonPath("$.data.durationMinutes").value(60));
+    }
+
+    @Test
+    void cancelInterviewShouldReturnUpdatedInterview() throws Exception {
+        InterviewResponse response = new InterviewResponse(
+                "int-c-1",
+                "candidate-1",
+                InterviewRound.ROUND_1,
+                LocalDateTime.of(2026, 7, 15, 16, 0),
+                45,
+                "https://meet.google.com/cancel-me",
+                null,
+                "Interview cancelled. Reason: interviewer unavailable",
+                InterviewStatus.CANCELLED,
+                List.of("alice")
+        );
+
+        when(interviewService.cancelInterview(eq("int-c-1"), any(CancelInterviewRequest.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(patch("/api/interviews/int-c-1/cancel")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "reason": "interviewer unavailable"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value("int-c-1"))
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+    }
+
+    @Test
+    void uploadInterviewPhotosShouldReturnCreatedPayload() throws Exception {
+        InterviewPhoto photo = new InterviewPhoto();
+        photo.setId("photo-1");
+        photo.setInterviewId("int-1");
+        photo.setOriginalFileName("panel.png");
+        photo.setContentType("image/png");
+        photo.setFileSize(1024L);
+        photo.setUploadedAt(LocalDateTime.of(2026, 7, 16, 10, 0));
+
+        when(interviewPhotoService.uploadPhotos(eq("int-1"), any(), any()))
+                .thenReturn(List.of(photo));
+
+        mockMvc.perform(multipart("/api/interviews/int-1/photos")
+                        .file("files", "dummy".getBytes()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].id").value("photo-1"))
+                .andExpect(jsonPath("$.data[0].interviewId").value("int-1"));
     }
 
 }

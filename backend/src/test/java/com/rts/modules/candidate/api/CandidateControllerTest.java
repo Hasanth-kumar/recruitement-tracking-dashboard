@@ -131,6 +131,7 @@ class CandidateControllerTest {
                 null,
                 false,
                 false,
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -197,6 +198,7 @@ class CandidateControllerTest {
                 "",
                 false,
                 false,
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -222,6 +224,7 @@ class CandidateControllerTest {
                 "",
                 false,
                 false,
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
@@ -308,6 +311,7 @@ class CandidateControllerTest {
                 "",
                 false,
                 false,
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );

@@ -16,6 +16,7 @@ public record CandidateResponse(
         String notes,
         boolean hasPhoto,
         boolean hasResume,
+        Double evalScore,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -35,6 +36,7 @@ public record CandidateResponse(
                 candidate.getNotes(),
                 hasPhoto,
                 hasResume,
+                candidate.getEvalScore(),
                 candidate.getCreatedAt(),
                 candidate.getUpdatedAt()
         );

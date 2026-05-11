@@ -248,6 +248,7 @@ class CandidateServiceTest {
         assertThat(response.email()).isEqualTo("aisha@rts.com");
         assertThat(response.hasResume()).isFalse();
         assertThat(response.hasPhoto()).isFalse();
+        assertThat(response.evalScore()).isNull();
     }
 
     @Test

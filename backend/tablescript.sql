@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     stage VARCHAR(50) NOT NULL,
     experience VARCHAR(200) NULL,
     notes VARCHAR(500) NULL,
+    eval_score DECIMAL(4,2) NULL,
     is_deleted TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -88,6 +89,27 @@ CREATE TABLE IF NOT EXISTS interview_interviewers (
     CONSTRAINT fk_interview_interviewers_interview FOREIGN KEY (interview_id) REFERENCES interviews (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS feedback (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    interview_id VARCHAR(36) NOT NULL,
+    candidate_id VARCHAR(36) NOT NULL,
+    submitted_by_username VARCHAR(100) NOT NULL,
+    technical_rating INT NOT NULL,
+    communication_rating INT NOT NULL,
+    problem_solving_rating INT NOT NULL,
+    leadership_rating INT NOT NULL,
+    culture_rating INT NOT NULL,
+    recommendation VARCHAR(20) NOT NULL,
+    comments VARCHAR(1000) NULL,
+    submitted_at DATETIME NOT NULL,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_feedback_interview FOREIGN KEY (interview_id) REFERENCES interviews (id),
+    CONSTRAINT fk_feedback_candidate FOREIGN KEY (candidate_id) REFERENCES candidates (id),
+    UNIQUE KEY uk_feedback_interview_submitter (interview_id, submitted_by_username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS notifications (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     user_id VARCHAR(100) NOT NULL,
@@ -98,6 +120,32 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- Manual patches for databases created before eval_score / feedback (Day 18).
+-- Idempotent: safe to re-run. Fresh installs already get these from CREATE above.
+-- ---------------------------------------------------------------------------
+
+-- candidates.eval_score (no-op if column already exists)
+SET @patch_eval_score = (
+    SELECT IF(
+        EXISTS(
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'candidates'
+              AND COLUMN_NAME = 'eval_score'
+        ),
+        'SELECT 1',
+        'ALTER TABLE candidates ADD COLUMN eval_score DECIMAL(4,2) NULL AFTER notes'
+    )
+);
+PREPARE patch_eval_score_stmt FROM @patch_eval_score;
+EXECUTE patch_eval_score_stmt;
+DEALLOCATE PREPARE patch_eval_score_stmt;
+
+-- feedback: defined once above (CREATE TABLE IF NOT EXISTS feedback). Re-running this script
+-- on an old DB creates that table if it was missing; no separate ALTER required.
 
 -- Optional seed admin (password: Admin@123). BCrypt strength 12, Spring-compatible ($2a$).
 -- With the default app profile, DataSeeder also creates this user if missing.

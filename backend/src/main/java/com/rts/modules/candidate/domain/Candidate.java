@@ -34,6 +34,9 @@ public class Candidate extends BaseEntity {
     @Column(name = "notes", length = 500)
     private String notes;
 
+    @Column(name = "eval_score")
+    private Double evalScore;
+
     public String getName() {
         return name;
     }
@@ -88,5 +91,13 @@ public class Candidate extends BaseEntity {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public Double getEvalScore() {
+        return evalScore;
+    }
+
+    public void setEvalScore(Double evalScore) {
+        this.evalScore = evalScore;
     }
 }

@@ -5,12 +5,18 @@ import com.rts.modules.candidate.domain.StageHistory;
 import com.rts.modules.candidate.persistence.CandidateRepository;
 import com.rts.modules.candidate.persistence.StageHistoryRepository;
 import com.rts.modules.interview.api.dto.InterviewResponse;
+import com.rts.modules.interview.api.dto.CancelInterviewRequest;
+import com.rts.modules.interview.api.dto.RescheduleInterviewRequest;
 import com.rts.modules.interview.api.dto.ScheduleRoundOneInterviewRequest;
 import com.rts.modules.interview.api.dto.ScheduleRoundTwoInterviewRequest;
 import com.rts.modules.interview.domain.Interview;
+import com.rts.modules.interview.domain.InterviewActionType;
+import com.rts.modules.interview.domain.InterviewHistory;
 import com.rts.modules.interview.domain.InterviewRound;
 import com.rts.modules.interview.domain.InterviewStatus;
+import com.rts.modules.interview.persistence.InterviewHistoryRepository;
 import com.rts.modules.interview.persistence.InterviewRepository;
+import com.rts.shared.events.InterviewRescheduledEvent;
 import com.rts.shared.events.InterviewScheduledEvent;
 import com.rts.shared.exception.ConflictException;
 import com.rts.shared.exception.ResourceNotFoundException;
@@ -55,6 +61,9 @@ class InterviewServiceTest {
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Mock
+    private InterviewHistoryRepository interviewHistoryRepository;
+
     private InterviewService interviewService;
 
     @BeforeEach
@@ -64,6 +73,7 @@ class InterviewServiceTest {
                 interviewRepository,
                 candidateRepository,
                 stageHistoryRepository,
+                interviewHistoryRepository,
                 applicationEventPublisher
         );
     }
@@ -349,5 +359,234 @@ class InterviewServiceTest {
         assertThatThrownBy(() -> interviewService.getSchedule(from, to, null))
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("toDateTime must be on or after fromDateTime");
+    }
+
+    @Test
+    void rescheduleInterviewShouldUpdateInterviewAndPublishRescheduledEvent() {
+        LocalDateTime oldStart = LocalDateTime.now().plusDays(1).withMinute(0);
+        LocalDateTime newStart = oldStart.plusDays(1);
+
+        Interview existing = new Interview();
+        existing.setId("interview-10");
+        existing.setCandidateId("candidate-10");
+        existing.setRound(InterviewRound.ROUND_1);
+        existing.setStatus(InterviewStatus.SCHEDULED);
+        existing.setDateTime(oldStart);
+        existing.setDurationMinutes(45);
+        existing.setMeetingLink("https://meet.google.com/old");
+        existing.setInterviewerUsernames(List.of("interviewer.a"));
+        existing.setNotes("Existing notes");
+
+        RescheduleInterviewRequest request = new RescheduleInterviewRequest(
+                newStart,
+                60,
+                List.of("interviewer.a", "interviewer.b"),
+                "https://meet.google.com/new",
+                null,
+                "Updated agenda",
+                "Panel availability changed"
+        );
+
+        when(interviewRepository.findById("interview-10")).thenReturn(Optional.of(existing));
+        when(interviewRepository.findByStatusInAndDateTimeBetween(anyCollection(), any(), any()))
+                .thenReturn(List.of(existing));
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated("recruiter.user", null, List.of())
+        );
+
+        InterviewResponse response = interviewService.rescheduleInterview("interview-10", request);
+
+        assertThat(response.id()).isEqualTo("interview-10");
+        assertThat(response.durationMinutes()).isEqualTo(60);
+        assertThat(response.dateTime()).isEqualTo(newStart);
+        assertThat(response.interviewerUsernames()).containsExactly("interviewer.a", "interviewer.b");
+        assertThat(existing.getNotes()).contains("Updated agenda");
+        assertThat(existing.getNotes()).contains("rescheduled at");
+        ArgumentCaptor<InterviewHistory> historyCaptor = ArgumentCaptor.forClass(InterviewHistory.class);
+        verify(interviewHistoryRepository).save(historyCaptor.capture());
+        assertThat(historyCaptor.getValue().getActionType()).isEqualTo(InterviewActionType.RESCHEDULED);
+
+        ArgumentCaptor<InterviewRescheduledEvent> eventCaptor = ArgumentCaptor.forClass(InterviewRescheduledEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().interviewId()).isEqualTo("interview-10");
+        assertThat(eventCaptor.getValue().previousDateTime()).isEqualTo(oldStart);
+        assertThat(eventCaptor.getValue().newDateTime()).isEqualTo(newStart);
+    }
+
+    @Test
+    void rescheduleInterviewShouldFailWhenInterviewerConflictExists() {
+        LocalDateTime oldStart = LocalDateTime.now().plusDays(1).withMinute(0);
+        LocalDateTime newStart = oldStart.plusDays(1);
+
+        Interview existing = new Interview();
+        existing.setId("interview-11");
+        existing.setCandidateId("candidate-11");
+        existing.setRound(InterviewRound.ROUND_2);
+        existing.setStatus(InterviewStatus.SCHEDULED);
+        existing.setDateTime(oldStart);
+        existing.setDurationMinutes(45);
+        existing.setLocation("Room A");
+        existing.setInterviewerUsernames(List.of("interviewer.x"));
+
+        Interview conflicting = new Interview();
+        conflicting.setId("interview-99");
+        conflicting.setStatus(InterviewStatus.SCHEDULED);
+        conflicting.setDateTime(newStart.plusMinutes(15));
+        conflicting.setDurationMinutes(60);
+        conflicting.setInterviewerUsernames(List.of("interviewer.x"));
+
+        RescheduleInterviewRequest request = new RescheduleInterviewRequest(
+                newStart,
+                45,
+                List.of("interviewer.x"),
+                null,
+                "Room B",
+                null,
+                null
+        );
+
+        when(interviewRepository.findById("interview-11")).thenReturn(Optional.of(existing));
+        when(interviewRepository.findByStatusInAndDateTimeBetween(anyCollection(), any(), any()))
+                .thenReturn(List.of(existing, conflicting));
+
+        assertThatThrownBy(() -> interviewService.rescheduleInterview("interview-11", request))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Scheduling conflict detected for one or more interviewers");
+    }
+
+    @Test
+    void cancelInterviewShouldCancelAndRollbackStageForRoundOne() {
+        Interview interview = new Interview();
+        interview.setId("interview-c1");
+        interview.setCandidateId("candidate-c1");
+        interview.setRound(InterviewRound.ROUND_1);
+        interview.setStatus(InterviewStatus.SCHEDULED);
+        interview.setNotes("Initial notes");
+
+        Candidate candidate = new Candidate();
+        candidate.setId("candidate-c1");
+        candidate.setStage(RecruitmentStage.R1_SCHEDULED);
+
+        when(interviewRepository.findById("interview-c1")).thenReturn(Optional.of(interview));
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(candidateRepository.findByIdAndDeletedFalse("candidate-c1")).thenReturn(Optional.of(candidate));
+        when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated("recruiter.user", null, List.of())
+        );
+
+        InterviewResponse response = interviewService.cancelInterview("interview-c1", new CancelInterviewRequest("No panel"));
+
+        assertThat(response.status()).isEqualTo(InterviewStatus.CANCELLED);
+        assertThat(candidate.getStage()).isEqualTo(RecruitmentStage.SHORTLISTED);
+        assertThat(interview.getNotes()).contains("Interview cancelled. Reason: No panel");
+        verify(stageHistoryRepository).save(any(StageHistory.class));
+        ArgumentCaptor<InterviewHistory> historyCaptor = ArgumentCaptor.forClass(InterviewHistory.class);
+        verify(interviewHistoryRepository).save(historyCaptor.capture());
+        assertThat(historyCaptor.getValue().getActionType()).isEqualTo(InterviewActionType.CANCELLED);
+    }
+
+    @Test
+    void cancelInterviewShouldFailWhenAlreadyCancelled() {
+        Interview interview = new Interview();
+        interview.setId("interview-c2");
+        interview.setStatus(InterviewStatus.CANCELLED);
+
+        when(interviewRepository.findById("interview-c2")).thenReturn(Optional.of(interview));
+
+        assertThatThrownBy(() -> interviewService.cancelInterview("interview-c2", new CancelInterviewRequest("Duplicate")))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Interview is already cancelled");
+    }
+
+    @Test
+    void cancelInterviewShouldRollbackToR1ClearedForRoundTwo() {
+        Interview interview = new Interview();
+        interview.setId("interview-c3");
+        interview.setCandidateId("candidate-c3");
+        interview.setRound(InterviewRound.ROUND_2);
+        interview.setStatus(InterviewStatus.SCHEDULED);
+
+        Candidate candidate = new Candidate();
+        candidate.setId("candidate-c3");
+        candidate.setStage(RecruitmentStage.R2_SCHEDULED);
+
+        when(interviewRepository.findById("interview-c3")).thenReturn(Optional.of(interview));
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(candidateRepository.findByIdAndDeletedFalse("candidate-c3")).thenReturn(Optional.of(candidate));
+        when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        interviewService.cancelInterview("interview-c3", new CancelInterviewRequest("Panel unavailable"));
+
+        assertThat(candidate.getStage()).isEqualTo(RecruitmentStage.R1_CLEARED);
+    }
+
+    @Test
+    void cancelInterviewShouldTrimNotesToEntityLimit() {
+        Interview interview = new Interview();
+        interview.setId("interview-c5");
+        interview.setCandidateId("candidate-c5");
+        interview.setRound(InterviewRound.ROUND_1);
+        interview.setStatus(InterviewStatus.SCHEDULED);
+        interview.setNotes("a".repeat(995));
+
+        Candidate candidate = new Candidate();
+        candidate.setId("candidate-c5");
+        candidate.setStage(RecruitmentStage.R1_SCHEDULED);
+
+        when(interviewRepository.findById("interview-c5")).thenReturn(Optional.of(interview));
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(candidateRepository.findByIdAndDeletedFalse("candidate-c5")).thenReturn(Optional.of(candidate));
+        when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        interviewService.cancelInterview("interview-c5", new CancelInterviewRequest("No panel"));
+
+        assertThat(interview.getNotes()).hasSize(1000);
+        assertThat(interview.getNotes()).endsWith("Interview cancelled. Reason: No panel");
+    }
+
+    @Test
+    void cancelInterviewWithNullRequestShouldRecordDefaultCancellationMessage() {
+        Interview interview = new Interview();
+        interview.setId("interview-c6");
+        interview.setCandidateId("candidate-c6");
+        interview.setRound(InterviewRound.ROUND_1);
+        interview.setStatus(InterviewStatus.SCHEDULED);
+
+        Candidate candidate = new Candidate();
+        candidate.setId("candidate-c6");
+        candidate.setStage(RecruitmentStage.R1_SCHEDULED);
+
+        when(interviewRepository.findById("interview-c6")).thenReturn(Optional.of(interview));
+        when(interviewRepository.save(any(Interview.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(candidateRepository.findByIdAndDeletedFalse("candidate-c6")).thenReturn(Optional.of(candidate));
+        when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated("recruiter.user", null, List.of())
+        );
+
+        interviewService.cancelInterview("interview-c6", null);
+
+        assertThat(interview.getNotes()).isEqualTo("Interview cancelled");
+        ArgumentCaptor<InterviewHistory> historyCaptor = ArgumentCaptor.forClass(InterviewHistory.class);
+        verify(interviewHistoryRepository).save(historyCaptor.capture());
+        assertThat(historyCaptor.getValue().getDetails()).isEqualTo("Interview cancelled");
+    }
+
+    @Test
+    void cancelInterviewShouldFailWhenCompleted() {
+        Interview interview = new Interview();
+        interview.setId("interview-c4");
+        interview.setStatus(InterviewStatus.COMPLETED);
+
+        when(interviewRepository.findById("interview-c4")).thenReturn(Optional.of(interview));
+
+        assertThatThrownBy(() -> interviewService.cancelInterview("interview-c4", new CancelInterviewRequest("Late change")))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Completed interviews cannot be cancelled");
     }
 }
