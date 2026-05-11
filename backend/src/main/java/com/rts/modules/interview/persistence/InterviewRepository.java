@@ -33,4 +33,18 @@ public interface InterviewRepository extends JpaRepository<Interview, String> {
             @Param("toDateTime") LocalDateTime toDateTime,
             @Param("interviewerUsername") String interviewerUsername
     );
+
+    @Query("""
+            select i
+            from Interview i
+            where i.deleted = false
+              and i.status in :statuses
+              and i.dateTime <= :scheduledBefore
+              and i.dateTime >= :scheduledAfter
+            """)
+    List<Interview> findInterviewsScheduledBetween(
+            @Param("statuses") Collection<InterviewStatus> statuses,
+            @Param("scheduledBefore") LocalDateTime scheduledBefore,
+            @Param("scheduledAfter") LocalDateTime scheduledAfter
+    );
 }

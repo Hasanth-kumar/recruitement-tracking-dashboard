@@ -1,6 +1,7 @@
 package com.rts.modules.feedback.application;
 
 import com.rts.modules.candidate.application.CandidateEvalPort;
+import com.rts.modules.feedback.api.dto.CandidateFeedbackSummaryResponse;
 import com.rts.modules.feedback.api.dto.FeedbackResponse;
 import com.rts.modules.feedback.api.dto.SubmitFeedbackRequest;
 import com.rts.modules.feedback.domain.Feedback;
@@ -44,6 +45,16 @@ public class FeedbackService {
         this.interviewRepository = interviewRepository;
         this.candidateEvalPort = candidateEvalPort;
         this.applicationEventPublisher = applicationEventPublisher;
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
+    @Transactional(readOnly = true)
+    public CandidateFeedbackSummaryResponse getCandidateFeedback(String candidateId) {
+        List<Feedback> feedbacks = feedbackRepository.findByCandidateIdAndDeletedFalseOrderBySubmittedAtDesc(candidateId);
+        List<FeedbackResponse> responses = feedbacks.stream()
+                .map(FeedbackResponse::from)
+                .toList();
+        return CandidateFeedbackSummaryResponse.from(candidateId, responses);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")

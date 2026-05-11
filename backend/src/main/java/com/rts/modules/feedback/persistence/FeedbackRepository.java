@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface FeedbackRepository extends JpaRepository<Feedback, String> {
@@ -13,6 +15,8 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
             String interviewId,
             String submittedByUsername
     );
+
+    List<Feedback> findByCandidateIdAndDeletedFalseOrderBySubmittedAtDesc(String candidateId);
 
     @Query("""
             select avg(
@@ -23,4 +27,11 @@ public interface FeedbackRepository extends JpaRepository<Feedback, String> {
             where f.candidateId = :candidateId and f.deleted = false
             """)
     Double averagePerFeedbackScore(@Param("candidateId") String candidateId);
+
+    @Query("""
+            select distinct f.interviewId
+            from Feedback f
+            where f.interviewId in :interviewIds and f.deleted = false
+            """)
+    List<String> findInterviewIdsWithFeedback(@Param("interviewIds") Collection<String> interviewIds);
 }

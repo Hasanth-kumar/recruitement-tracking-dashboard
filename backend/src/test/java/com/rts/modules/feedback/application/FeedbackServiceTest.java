@@ -221,6 +221,63 @@ class FeedbackServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
+    @Test
+    void getCandidateFeedbackShouldReturnSummaryWithAverages() {
+        Feedback fb1 = buildFeedback("fb-1", "cand-1", "int-1", "alice", 5, 4, 3, 4, 5, FeedbackRecommendation.PROCEED);
+        Feedback fb2 = buildFeedback("fb-2", "cand-1", "int-2", "bob", 3, 3, 4, 3, 3, FeedbackRecommendation.HOLD);
+
+        when(feedbackRepository.findByCandidateIdAndDeletedFalseOrderBySubmittedAtDesc("cand-1"))
+                .thenReturn(List.of(fb1, fb2));
+
+        authenticate("alice", "ROLE_RECRUITER");
+
+        var result = feedbackService.getCandidateFeedback("cand-1");
+
+        assertThat(result.candidateId()).isEqualTo("cand-1");
+        assertThat(result.totalFeedbackCount()).isEqualTo(2);
+        assertThat(result.averageTechnicalRating()).isEqualTo(4.0);
+        assertThat(result.averageCommunicationRating()).isEqualTo(3.5);
+        assertThat(result.averageProblemSolvingRating()).isEqualTo(3.5);
+        assertThat(result.averageLeadershipRating()).isEqualTo(3.5);
+        assertThat(result.averageCultureRating()).isEqualTo(4.0);
+        assertThat(result.overallAverageRating()).isNotNull();
+        assertThat(result.feedbacks()).hasSize(2);
+    }
+
+    @Test
+    void getCandidateFeedbackShouldReturnEmptySummaryWhenNoFeedback() {
+        when(feedbackRepository.findByCandidateIdAndDeletedFalseOrderBySubmittedAtDesc("cand-999"))
+                .thenReturn(List.of());
+
+        authenticate("alice", "ROLE_RECRUITER");
+
+        var result = feedbackService.getCandidateFeedback("cand-999");
+
+        assertThat(result.candidateId()).isEqualTo("cand-999");
+        assertThat(result.totalFeedbackCount()).isEqualTo(0);
+        assertThat(result.averageTechnicalRating()).isNull();
+        assertThat(result.overallAverageRating()).isNull();
+        assertThat(result.feedbacks()).isEmpty();
+    }
+
+    private static Feedback buildFeedback(String id, String candidateId, String interviewId,
+                                           String username, int tech, int comm, int prob,
+                                           int lead, int cult, FeedbackRecommendation rec) {
+        Feedback f = new Feedback();
+        f.setId(id);
+        f.setCandidateId(candidateId);
+        f.setInterviewId(interviewId);
+        f.setSubmittedByUsername(username);
+        f.setTechnicalRating(tech);
+        f.setCommunicationRating(comm);
+        f.setProblemSolvingRating(prob);
+        f.setLeadershipRating(lead);
+        f.setCultureRating(cult);
+        f.setRecommendation(rec);
+        f.setSubmittedAt(LocalDateTime.now().minusHours(2));
+        return f;
+    }
+
     private static Interview interview() {
         Interview i = new Interview();
         i.setId("int-1");
