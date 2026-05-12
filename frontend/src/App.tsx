@@ -1,6 +1,3 @@
-// src/App.tsx
-// Route definitions — login, dashboard, profile
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { TeamOutlined, UserOutlined, UsergroupAddOutlined } from '@ant-design/icons';
@@ -15,15 +12,12 @@ import { useAuth } from './shared/hooks/useAuth';
 import ProtectedRoute from './shared/components/ProtectedRoutes';
 import ForbiddenPage from './shared/components/ForbiddenPage';
 import AppLayout from './shared/components/AppLayout';
-
-// ── Simple auth guard ──────────────────────────────────────────
-// Checks for a token in either storage tier before allowing access
+import FeedbackFormPage from './features/feedback/pages/FeedbackFormPage';
+import FeedbackListPage from './features/feedback/pages/FeedbackListPage';
 
 function isLoggedIn(): boolean {
   return !!(localStorage.getItem('rts_token') || sessionStorage.getItem('rts_token'));
 }
-
-// ── Dashboard (Sprint 1 placeholder — richer copy until Sprint 2 reporting) ──
 
 function DashboardPage() {
   const { role, hasRole } = useAuth();
@@ -156,6 +150,16 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/feedback" element={
+          <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.INTERVIEWER]}>
+            <AppLayout><FeedbackListPage /></AppLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/feedback/new" element={
+          <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.INTERVIEWER]}>
+            <AppLayout><FeedbackFormPage /></AppLayout>
+          </ProtectedRoute>
+        } />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />
