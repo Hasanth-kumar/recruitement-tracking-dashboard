@@ -7,9 +7,6 @@ import {
   type AuthUser,
 } from './authSlice';
 import { Role } from '../../constants/roles';
-import { authorizationBasicHeader, encodeBasicAuth } from '../../shared/utils/basicAuth';
-
-// ── DTOs (mirror backend) ──────────────────────────────────────
 
 export interface LoginRequest {
   identifier: string;
@@ -17,7 +14,6 @@ export interface LoginRequest {
   rememberMe?: boolean;
 }
 
-/** Backend LoginResponse: only nested user, no JWT. */
 export interface LoginUserInfo {
   id: string;
   username: string;
@@ -26,10 +22,10 @@ export interface LoginUserInfo {
 }
 
 export interface LoginResponse {
+  accessToken: string;
   user: LoginUserInfo;
 }
 
-/** Backend UpdateUserProfileRequest — all password fields required together when changing password. */
 export interface UpdateProfileRequest {
   username?: string;
   email?: string;
@@ -59,13 +55,11 @@ export function mapToAuthUser(data: {
   };
 }
 
-// ── Base query ─────────────────────────────────────────────────
-
 const baseQuery = fetchBaseQuery({
   baseUrl: '/api',
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
-    if (token) headers.set('Authorization', authorizationBasicHeader(token));
+    if (token) headers.set('Authorization', `Bearer ${token}`);
     headers.set('Content-Type', 'application/json');
     return headers;
   },
@@ -76,8 +70,6 @@ const baseQueryWithAuthGuard: typeof baseQuery = async (args, api, extra) => {
   if (result.error?.status === 401) api.dispatch(sessionExpired());
   return result;
 };
-
-// ── API slice ──────────────────────────────────────────────────
 
 export const authApi = createApi({
   reducerPath: 'authApi',
@@ -92,19 +84,17 @@ export const authApi = createApi({
         body: { usernameOrEmail: identifier.trim(), password },
       }),
       async onQueryStarted(
-        { identifier, password, rememberMe = false },
+        { rememberMe = false },
         { dispatch, queryFulfilled }
       ) {
         try {
           const { data: res } = await queryFulfilled;
-          if (res.success && res.data?.user) {
-            const principal = identifier.trim();
+          if (res.success && res.data?.accessToken && res.data?.user) {
             dispatch(
               credentialsReceived({
-                token: encodeBasicAuth(principal, password),
+                token: res.data.accessToken,
                 user: mapToAuthUser(res.data.user),
                 rememberMe,
-                basicAuthPrincipal: principal,
               })
             );
           }
@@ -115,7 +105,7 @@ export const authApi = createApi({
     }),
 
     getProfile: builder.query<ApiResponse<AuthUser>, void>({
-      query: () => '/users/profile',
+      query: () => '/auth/me',
       transformResponse: (res: ApiResponse<AuthUser>) => ({
         ...res,
         data: mapToAuthUser(res.data as unknown as LoginUserInfo),

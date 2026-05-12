@@ -1,16 +1,21 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Button, Input, Select } from 'antd';
-import { SearchOutlined, ReloadOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { Button, Input, Select, Spin, Alert } from 'antd';
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { mockGetAllCandidates } from '../../candidates/candidateMock';
-import { Candidate, RecruitmentStage, POSITIONS } from '../../candidates/candidateTypes';
-import StatusBadge from '../../../shared/components/StatusBadge';
+import {
+  InterviewResponseDto,
+  InterviewRound,
+  InterviewStatus,
+  apiFetchInterviewSchedule,
+} from '../feedbackApi';
 import '../../../App.css';
 
-const USE_MOCK = true;
-const ELIGIBLE_STAGES: RecruitmentStage[] = ['R1_CLEARED', 'R2_CLEARED'];
-
-type SortField = 'name' | 'position' | 'experience' | 'stage' | 'createdAt';
+type SortField = 'candidateId' | 'round' | 'dateTime' | 'status';
 type SortDir = 'asc' | 'desc';
 
 interface SortState {
@@ -18,195 +23,320 @@ interface SortState {
   dir: SortDir;
 }
 
-const SortIcon: React.FC<{ field: SortField; sortState: SortState }> = ({ field, sortState }) => {
-  if (sortState.field !== field) return <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>↕</span>;
-  return sortState.dir === 'asc'
-    ? <ArrowUpOutlined style={{ color: 'var(--accent)', marginLeft: 4, fontSize: '0.7rem' }} />
-    : <ArrowDownOutlined style={{ color: 'var(--accent)', marginLeft: 4, fontSize: '0.7rem' }} />;
+const ROUND_LABELS: Record<InterviewRound, string> = {
+  ROUND_1: 'Round 1',
+  ROUND_2: 'Round 2',
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    day: '2-digit', month: 'short', year: 'numeric',
+const STATUS_LABELS: Record<InterviewStatus, string> = {
+  SCHEDULED: 'Scheduled',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+};
+
+const STATUS_COLORS: Record<InterviewStatus, string> = {
+  SCHEDULED: '#d97706',
+  COMPLETED: '#16a34a',
+  CANCELLED: '#dc2626',
+};
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
+const SortIcon: React.FC<{ field: SortField; sortState: SortState }> = ({
+  field,
+  sortState,
+}) => {
+  if (sortState.field !== field)
+    return <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>↕</span>;
+  return sortState.dir === 'asc' ? (
+    <ArrowUpOutlined
+      style={{ color: 'var(--accent)', marginLeft: 4, fontSize: '0.7rem' }}
+    />
+  ) : (
+    <ArrowDownOutlined
+      style={{ color: 'var(--accent)', marginLeft: 4, fontSize: '0.7rem' }}
+    />
+  );
+};
+
 const FeedbackListPage: React.FC = () => {
   const navigate = useNavigate();
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [interviews, setInterviews] = useState<InterviewResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState<string>('');
-  const [positionFilter, setPositionFilter] = useState<string>('');
-  const [sortState, setSortState] = useState<SortState>({ field: 'name', dir: 'asc' });
+  const [roundFilter, setRoundFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [sortState, setSortState] = useState<SortState>({
+    field: 'dateTime',
+    dir: 'desc',
+  });
+
+  const loadInterviews = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const now = new Date();
+      const threeMonthsAgo = new Date(now);
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const oneMonthAhead = new Date(now);
+      oneMonthAhead.setMonth(oneMonthAhead.getMonth() + 1);
+
+      const data = await apiFetchInterviewSchedule(
+        threeMonthsAgo.toISOString(),
+        oneMonthAhead.toISOString(),
+      );
+      setInterviews(data);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load interviews.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadInterviews();
+  }, []);
 
   const handleSortChange = (field: SortField) => {
-    setSortState(prev =>
+    setSortState((prev) =>
       prev.field === field
         ? { field, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
         : { field, dir: 'asc' },
     );
   };
 
-  const loadCandidates = () => {
-    if (USE_MOCK) {
-      const eligible = mockGetAllCandidates().filter(c => ELIGIBLE_STAGES.includes(c.stage));
-      setCandidates(eligible);
-    }
-  };
-
-  useEffect(() => { loadCandidates(); }, []);
-
   const filtered = useMemo(() => {
-    let list = candidates;
+    let list = interviews;
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(c =>
-        c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q),
+      list = list.filter(
+        (i) =>
+          i.candidateId.toLowerCase().includes(q) ||
+          i.interviewerUsernames.some((u) => u.toLowerCase().includes(q)),
       );
     }
-    if (stageFilter) {
-      list = list.filter(c => c.stage === stageFilter);
+    if (roundFilter) {
+      list = list.filter((i) => i.round === roundFilter);
     }
-    if (positionFilter) {
-      list = list.filter(c => c.position === positionFilter);
+    if (statusFilter) {
+      list = list.filter((i) => i.status === statusFilter);
     }
 
-    const sorted = [...list].sort((a, b) => {
+    return [...list].sort((a, b) => {
       const dir = sortState.dir === 'asc' ? 1 : -1;
       switch (sortState.field) {
-        case 'name':
-          return dir * a.name.localeCompare(b.name);
-        case 'position':
-          return dir * a.position.localeCompare(b.position);
-        case 'experience':
-          return dir * (Number(a.experience) - Number(b.experience));
-        case 'stage':
-          return dir * a.stage.localeCompare(b.stage);
-        case 'createdAt':
-          return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        case 'candidateId':
+          return dir * a.candidateId.localeCompare(b.candidateId);
+        case 'round':
+          return dir * a.round.localeCompare(b.round);
+        case 'dateTime':
+          return (
+            dir *
+            (new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
+          );
+        case 'status':
+          return dir * a.status.localeCompare(b.status);
         default:
           return 0;
       }
     });
+  }, [interviews, search, roundFilter, statusFilter, sortState]);
 
-    return sorted;
-  }, [candidates, search, stageFilter, positionFilter, sortState]);
+  const canSubmitFeedback = (interview: InterviewResponseDto): boolean => {
+    if (interview.status === 'CANCELLED') return false;
+    const end = new Date(interview.dateTime);
+    end.setMinutes(end.getMinutes() + (interview.durationMinutes ?? 60));
+    return new Date() >= end;
+  };
 
-  const handleGiveFeedback = (c: Candidate) => {
-    const round = c.stage === 'R2_CLEARED' ? 2 : 1;
-    navigate(`/feedback/new?candidateId=${c.id}&candidateName=${encodeURIComponent(c.name)}&round=${round}`);
+  const handleGiveFeedback = (interview: InterviewResponseDto) => {
+    navigate(
+      `/feedback/new?interviewId=${interview.id}&candidateId=${interview.candidateId}&round=${interview.round}`,
+    );
   };
 
   return (
     <div className="feedback-root">
       <div className="feedback-list-header">
         <div className="feedback-eyebrow">FEEDBACK</div>
-        <h2>Submit Feedback</h2>
+        <h2>Interview Feedback</h2>
       </div>
 
       <div className="fl-filter-bar">
         <Input
           prefix={<SearchOutlined style={{ color: 'var(--text-muted)' }} />}
-          placeholder="Search by name or email..."
+          placeholder="Search by candidate ID or interviewer..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           allowClear
           className="fl-search-input"
         />
         <Select
-          placeholder="All stages"
-          value={stageFilter || undefined}
-          onChange={v => setStageFilter(v ?? '')}
+          placeholder="All rounds"
+          value={roundFilter || undefined}
+          onChange={(v) => setRoundFilter(v ?? '')}
           allowClear
           style={{ minWidth: 140 }}
-          options={ELIGIBLE_STAGES.map(s => ({
-            value: s,
-            label: s === 'R1_CLEARED' ? 'Round 1 Cleared' : 'Round 2 Cleared',
-          }))}
+          options={[
+            { value: 'ROUND_1', label: 'Round 1' },
+            { value: 'ROUND_2', label: 'Round 2' },
+          ]}
         />
         <Select
-          placeholder="All positions"
-          value={positionFilter || undefined}
-          onChange={v => setPositionFilter(v ?? '')}
+          placeholder="All statuses"
+          value={statusFilter || undefined}
+          onChange={(v) => setStatusFilter(v ?? '')}
           allowClear
-          style={{ minWidth: 150 }}
-          options={POSITIONS.map(p => ({ value: p, label: p }))}
+          style={{ minWidth: 140 }}
+          options={[
+            { value: 'SCHEDULED', label: 'Scheduled' },
+            { value: 'COMPLETED', label: 'Completed' },
+            { value: 'CANCELLED', label: 'Cancelled' },
+          ]}
         />
         <Button
           icon={<ReloadOutlined />}
-          onClick={loadCandidates}
+          onClick={loadInterviews}
           className="fl-refresh-btn"
         >
           Refresh
         </Button>
       </div>
 
-      <p className="fl-meta">
-        {filtered.length} candidate{filtered.length !== 1 ? 's' : ''} · Only Round 1 cleared and Round 2 cleared are shown
-      </p>
+      {error && (
+        <Alert
+          type="error"
+          message={error}
+          showIcon
+          closable
+          onClose={() => setError(null)}
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
-      <div className="fl-table-wrap">
-        <table className="fl-table">
-          <thead>
-            <tr>
-              <th className="fl-th-sort" onClick={() => handleSortChange('name')}>
-                CANDIDATE <SortIcon field="name" sortState={sortState} />
-              </th>
-              <th className="fl-th-sort" onClick={() => handleSortChange('position')}>
-                POSITION <SortIcon field="position" sortState={sortState} />
-              </th>
-              <th className="fl-th-sort" onClick={() => handleSortChange('experience')}>
-                EXPERIENCE <SortIcon field="experience" sortState={sortState} />
-              </th>
-              <th className="fl-th-sort" onClick={() => handleSortChange('stage')}>
-                STAGE <SortIcon field="stage" sortState={sortState} />
-              </th>
-              <th className="fl-th-sort" onClick={() => handleSortChange('createdAt')}>
-                APPLIED <SortIcon field="createdAt" sortState={sortState} />
-              </th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="fl-table-empty">
-                  No eligible candidates found.
-                </td>
-              </tr>
-            ) : (
-              filtered.map(c => (
-                <tr key={c.id}>
-                  <td>
-                    <div className="fl-candidate-cell">
-                      <div className="fl-candidate-avatar">
-                        {c.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="fl-candidate-name">{c.name}</div>
-                        <div className="fl-candidate-email">{c.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{c.position}</td>
-                  <td>{c.experience}</td>
-                  <td><StatusBadge stage={c.stage} /></td>
-                  <td>{formatDate(c.createdAt)}</td>
-                  <td>
-                    <Button
-                      type="primary"
-                      size="small"
-                      onClick={() => handleGiveFeedback(c)}
-                    >
-                      Give Feedback
-                    </Button>
-                  </td>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+          <Spin size="large" />
+        </div>
+      ) : (
+        <>
+          <p className="fl-meta">
+            {filtered.length} interview{filtered.length !== 1 ? 's' : ''}
+          </p>
+
+          <div className="fl-table-wrap">
+            <table className="fl-table">
+              <thead>
+                <tr>
+                  <th
+                    className="fl-th-sort"
+                    onClick={() => handleSortChange('candidateId')}
+                  >
+                    CANDIDATE ID{' '}
+                    <SortIcon field="candidateId" sortState={sortState} />
+                  </th>
+                  <th
+                    className="fl-th-sort"
+                    onClick={() => handleSortChange('round')}
+                  >
+                    ROUND <SortIcon field="round" sortState={sortState} />
+                  </th>
+                  <th
+                    className="fl-th-sort"
+                    onClick={() => handleSortChange('dateTime')}
+                  >
+                    DATE & TIME{' '}
+                    <SortIcon field="dateTime" sortState={sortState} />
+                  </th>
+                  <th>INTERVIEWERS</th>
+                  <th
+                    className="fl-th-sort"
+                    onClick={() => handleSortChange('status')}
+                  >
+                    STATUS <SortIcon field="status" sortState={sortState} />
+                  </th>
+                  <th>ACTIONS</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="fl-table-empty">
+                      No interviews found.
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((interview) => (
+                    <tr key={interview.id}>
+                      <td>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                          {interview.candidateId.slice(0, 8)}…
+                        </span>
+                      </td>
+                      <td>{ROUND_LABELS[interview.round]}</td>
+                      <td>{formatDateTime(interview.dateTime)}</td>
+                      <td>
+                        {interview.interviewerUsernames.length > 0
+                          ? interview.interviewerUsernames.join(', ')
+                          : '—'}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            color: STATUS_COLORS[interview.status],
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          {STATUS_LABELS[interview.status]}
+                        </span>
+                      </td>
+                      <td>
+                        {canSubmitFeedback(interview) ? (
+                          <Button
+                            type="primary"
+                            size="small"
+                            onClick={() => handleGiveFeedback(interview)}
+                          >
+                            Give Feedback
+                          </Button>
+                        ) : interview.status === 'CANCELLED' ? (
+                          <span
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            Cancelled
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            Not yet ended
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 };

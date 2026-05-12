@@ -3,7 +3,7 @@ import { Button, message } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Candidate, RecruitmentStage } from '../candidateTypes';
-import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
+import { bearerFetchHeaders } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
 import { mapApiRowToCandidate } from '../candidateApiMappers';
@@ -87,14 +87,14 @@ const s = {
 };
 
 async function apiGetCandidate(id: string): Promise<Candidate> {
-  const res = await fetch(`/api/candidates/${id}`, { headers: basicAuthFetchHeaders(false) });
+  const res = await fetch(`/api/candidates/${id}`, { headers: bearerFetchHeaders(false) });
   const data = await res.json();
   if (!data.success) throw new Error(data.message);
   return mapApiRowToCandidate(data.data as Record<string, unknown>);
 }
 
 async function apiGetStageHistory(id: string): Promise<StageHistoryItem[]> {
-  const res = await fetch(`/api/candidates/${id}/stage-history`, { headers: basicAuthFetchHeaders(false) });
+  const res = await fetch(`/api/candidates/${id}/stage-history`, { headers: bearerFetchHeaders(false) });
   const data = await res.json();
   if (!data.success) throw new Error(data.message);
   return (data.data as StageHistoryItem[]) ?? [];
@@ -151,7 +151,7 @@ const CandidateDetailPage: React.FC = () => {
   const downloadResume = async () => {
     if (!id) return;
     try {
-      const res = await fetch(`/api/candidates/${id}/resume`, { headers: basicAuthFetchHeaders(false) });
+      const res = await fetch(`/api/candidates/${id}/resume`, { headers: bearerFetchHeaders(false) });
       if (!res.ok) throw new Error('Could not download résumé.');
       const blob = await res.blob();
       const cd = res.headers.get('Content-Disposition');

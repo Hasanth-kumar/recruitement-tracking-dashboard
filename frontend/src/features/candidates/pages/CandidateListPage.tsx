@@ -15,7 +15,7 @@ import {
   mockUpdateCandidate,
   mockDeleteCandidate,
 } from '../candidateMock';
-import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
+import { bearerFetchHeaders } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
 import { mapApiRowToCandidate, PagedResponseApi } from '../candidateApiMappers';
@@ -45,7 +45,7 @@ async function apiFetchCandidatesPage(
   if (filters.dateTo) params.set('createdTo', filters.dateTo);
 
   const res = await fetch(`/api/candidates?${params}`, {
-    headers: basicAuthFetchHeaders(false),
+    headers: bearerFetchHeaders(false),
   });
   const data = await res.json();
   if (!data.success) throw new Error(data.message);
@@ -57,7 +57,7 @@ async function apiFetchCandidatesPage(
 async function apiUpdateStage(id: string, stage: RecruitmentStage): Promise<void> {
   const res = await fetch(`/api/candidates/${id}/stage`, {
     method: 'PUT',
-    headers: basicAuthFetchHeaders(true),
+    headers: bearerFetchHeaders(true),
     body: JSON.stringify({ stage }),
   });
   const data = await res.json();
@@ -67,7 +67,7 @@ async function apiUpdateStage(id: string, stage: RecruitmentStage): Promise<void
 async function apiBulkUpdateStage(ids: string[], stage: RecruitmentStage): Promise<void> {
   const res = await fetch('/api/candidates/bulk-stage', {
     method: 'POST',
-    headers: basicAuthFetchHeaders(true),
+    headers: bearerFetchHeaders(true),
     body: JSON.stringify({ candidateIds: ids, stage }),
   });
   const data = await res.json();
@@ -77,7 +77,7 @@ async function apiBulkUpdateStage(ids: string[], stage: RecruitmentStage): Promi
 async function apiDeleteCandidate(id: string): Promise<void> {
   const res = await fetch(`/api/candidates/${id}`, {
     method: 'DELETE',
-    headers: basicAuthFetchHeaders(false),
+    headers: bearerFetchHeaders(false),
   });
   const data = await res.json();
   if (!data.success) throw new Error(data.message);

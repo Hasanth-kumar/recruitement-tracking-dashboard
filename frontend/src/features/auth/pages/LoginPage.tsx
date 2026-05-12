@@ -11,20 +11,15 @@ import {
 import { useAppDispatch } from '../../../shared/hooks/useAuth';
 import { credentialsReceived } from '../authSlice';
 import { mapToAuthUser } from '../authApi';
-import { encodeBasicAuth } from '../../../shared/utils/basicAuth';
 import { Role } from '../../../constants/roles';
 import { useAppTheme } from '../../../shared/theme/AppThemeProvider';
 import '../../../App.css';
-
-// ── Types ──────────────────────────────────────────────────────
 
 interface FormState {
   identifier: string;
   password: string;
   rememberMe: boolean;
 }
-
-// ── Mock login (remove once backend is ready) ──────────────────
 
 const USE_MOCK = false;
 
@@ -42,10 +37,10 @@ const MOCK_USERS: Record<string, MockUser> = {
   'interviewer@rts.com': { id: '4', username: 'interviewer', email: 'interviewer@rts.com', role: Role.INTERVIEWER },
 };
 
-function mockLogin(identifier: string, password: string): { user: MockUser } {
+function mockLogin(identifier: string, password: string): { accessToken: string; user: MockUser } {
   const user = MOCK_USERS[identifier.toLowerCase()];
   if (!user || !password) throw new Error('Invalid credentials. Please try again.');
-  return { user };
+  return { accessToken: 'mock-jwt-token', user };
 }
 
 interface ApiEnvelope<T> {
@@ -53,8 +48,6 @@ interface ApiEnvelope<T> {
   message?: string;
   data?: T;
 }
-
-// ── Component ──────────────────────────────────────────────────
 
 const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -78,18 +71,6 @@ const LoginPage: React.FC = () => {
     return null;
   };
 
-  const persistSession = (principal: string, password: string, user: ReturnType<typeof mapToAuthUser>) => {
-    const token = encodeBasicAuth(principal, password);
-    dispatch(
-      credentialsReceived({
-        token,
-        user,
-        rememberMe: form.rememberMe,
-        basicAuthPrincipal: principal,
-      })
-    );
-  };
-
   const handleSubmit = async () => {
     const err = validate();
     if (err) { setError(err); return; }
@@ -102,24 +83,39 @@ const LoginPage: React.FC = () => {
     try {
       if (USE_MOCK) {
         await new Promise(r => setTimeout(r, 600));
-        const { user } = mockLogin(principal, form.password);
-        persistSession(principal, form.password, mapToAuthUser(user));
+        const { accessToken, user } = mockLogin(principal, form.password);
+        dispatch(
+          credentialsReceived({
+            token: accessToken,
+            user: mapToAuthUser(user),
+            rememberMe: form.rememberMe,
+          })
+        );
       } else {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ usernameOrEmail: principal, password: form.password }),
         });
-        const data = (await res.json()) as ApiEnvelope<{ user: { id: string; username: string; email: string; role: string } }>;
+        const data = (await res.json()) as ApiEnvelope<{
+          accessToken: string;
+          user: { id: string; username: string; email: string; role: string };
+        }>;
 
         if (!res.ok) {
           throw new Error(data.message || 'Invalid credentials. Please try again.');
         }
-        if (!data.success || !data.data?.user) {
+        if (!data.success || !data.data?.accessToken || !data.data?.user) {
           throw new Error(data.message || 'Login failed. Please try again.');
         }
 
-        persistSession(principal, form.password, mapToAuthUser(data.data.user));
+        dispatch(
+          credentialsReceived({
+            token: data.data.accessToken,
+            user: mapToAuthUser(data.data.user),
+            rememberMe: form.rememberMe,
+          })
+        );
       }
 
       window.location.href = '/dashboard';
@@ -134,12 +130,9 @@ const LoginPage: React.FC = () => {
     if (e.key === 'Enter') handleSubmit();
   };
 
-  // ── Render ─────────────────────────────────────────────────
-
   return (
     <div className="login-root">
 
-      {/* Left sidebar */}
       <aside className="login-sidebar">
         <div className="login-logo">
           <div className="login-logo-mark">RTS</div>
@@ -169,11 +162,8 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* <p className="login-sidebar-footer">© 2026 RTS · Internship Project</p> */}
       </aside>
 
-      {/* Right form panel */}
       <main className="login-main">
         <div className="login-form-wrap">
           <div className="login-theme-toggle-wrap">
@@ -266,11 +256,6 @@ const LoginPage: React.FC = () => {
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
           </div>
-
-          {/* <p className="login-footer-note">
-            © 2026 Recruitment Tracking System ·{' '}
-            <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
-          </p> */}
         </div>
       </main>
     </div>

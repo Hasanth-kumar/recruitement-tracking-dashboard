@@ -8,16 +8,11 @@ import {
   EyeTwoTone,
 } from '@ant-design/icons';
 import { useGetProfileQuery, useUpdateProfileMutation } from '../authApi';
-import { useAppDispatch, useAppSelector } from '../../../shared/hooks/useAuth';
-import { basicCredentialsRefreshed, selectAuthUser, selectBasicAuthPrincipal } from '../authSlice';
-import { encodeBasicAuth } from '../../../shared/utils/basicAuth';
+import { useAppSelector } from '../../../shared/hooks/useAuth';
+import { selectAuthUser } from '../authSlice';
 import '../../../App.css';
 
-// ── Validation ─────────────────────────────────────────────────
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// ── Types ──────────────────────────────────────────────────────
 
 interface ProfileForm {
   username: string;
@@ -30,12 +25,8 @@ interface PasswordForm {
   confirm: string;
 }
 
-// ── Component ──────────────────────────────────────────────────
-
 const ProfilePage: React.FC = () => {
-  const dispatch = useAppDispatch();
   const reduxUser = useAppSelector(selectAuthUser);
-  const basicPrincipal = useAppSelector(selectBasicAuthPrincipal);
 
   const { data: profileRes, isLoading } = useGetProfileQuery();
   const [updateProfile, { isLoading: saving }] = useUpdateProfileMutation();
@@ -124,9 +115,6 @@ const ProfilePage: React.FC = () => {
       }).unwrap();
       if (res.success) {
         message.success('Password updated.');
-        const newPassword = pwdForm.next;
-        const principal = basicPrincipal ?? profile?.username ?? profileForm.username.trim();
-        dispatch(basicCredentialsRefreshed({ token: encodeBasicAuth(principal, newPassword) }));
         setPwdForm({ current: '', next: '', confirm: '' });
       }
     } catch (e: unknown) {
@@ -171,7 +159,7 @@ const ProfilePage: React.FC = () => {
 
           <section className="profile-section">
             <h3 className="profile-section-title">Account details</h3>
-            <p className="profile-section-desc">Update your username and email (matches backend user profile).</p>
+            <p className="profile-section-desc">Update your username and email.</p>
 
             {profileErr && (
               <Alert
@@ -244,7 +232,7 @@ const ProfilePage: React.FC = () => {
           <section className="profile-section">
             <h3 className="profile-section-title">Change password</h3>
             <p className="profile-section-desc">
-              Uses the same profile API as the backend: current, new, and confirm are required together.
+              Enter your current password and choose a new one.
             </p>
 
             {pwdErr && (

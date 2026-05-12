@@ -8,10 +8,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import CandidateListPage from '../../features/candidates/pages/CandidateListPage';
 import authReducer from '../../features/auth/authSlice';
 import { Role } from '../../constants/roles';
-import { encodeBasicAuth } from '../../shared/utils/basicAuth';
-
 function renderPage() {
-  const token = encodeBasicAuth('recruiter@rts.com', 'pw');
+  const token = 'mock-jwt-token';
   localStorage.setItem('rts_token', token);
 
   const store = configureStore({
@@ -20,7 +18,6 @@ function renderPage() {
     preloadedState: {
       auth: {
         token,
-        basicAuthPrincipal: 'recruiter@rts.com',
         user: {
           id: 'u1',
           username: 'recruiter',

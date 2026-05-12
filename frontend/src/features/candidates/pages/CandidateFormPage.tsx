@@ -19,7 +19,7 @@ import {
  mockDeleteCandidatePhoto,
  mockUpdateCandidateResume,
 } from '../candidateMock';
-import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
+import { bearerFetchHeaders } from '../../../shared/utils/basicAuth';
 import { USE_CANDIDATE_MOCK } from '../candidatesConfig';
 import { mapApiRowToCandidate } from '../candidateApiMappers';
 import '../../../App.css';
@@ -30,7 +30,7 @@ const USE_MOCK = USE_CANDIDATE_MOCK;
 
 async function apiGetCandidate(id: string): Promise<Candidate> {
  const res = await fetch(`/api/candidates/${id}`, {
-   headers: basicAuthFetchHeaders(false),
+   headers: bearerFetchHeaders(false),
  });
  const data = await res.json();
  if (!data.success) throw new Error(data.message);
@@ -40,7 +40,7 @@ async function apiGetCandidate(id: string): Promise<Candidate> {
 async function apiCreateCandidate(payload: object) {
  const res = await fetch('/api/candidates', {
    method: 'POST',
-   headers: basicAuthFetchHeaders(true),
+   headers: bearerFetchHeaders(true),
    body: JSON.stringify(payload),
  });
  const data = await res.json();
@@ -51,7 +51,7 @@ async function apiCreateCandidate(payload: object) {
 async function apiUpdateCandidate(id: string, payload: object) {
  const res = await fetch(`/api/candidates/${id}`, {
    method: 'PUT',
-   headers: basicAuthFetchHeaders(true),
+   headers: bearerFetchHeaders(true),
    body: JSON.stringify(payload),
  });
  const data = await res.json();
@@ -64,7 +64,7 @@ async function apiUploadPhoto(id: string, file: File) {
  fd.append('file', file);
  const res = await fetch(`/api/candidates/${id}/photo`, {
    method: 'POST',
-   headers: basicAuthFetchHeaders(false),
+   headers: bearerFetchHeaders(false),
    body: fd,
  });
  const data = await res.json();
@@ -74,7 +74,7 @@ async function apiUploadPhoto(id: string, file: File) {
 async function apiDeletePhoto(id: string) {
  const res = await fetch(`/api/candidates/${id}/photo`, {
    method: 'DELETE',
-   headers: basicAuthFetchHeaders(false),
+   headers: bearerFetchHeaders(false),
  });
  const data = await res.json();
  if (!data.success) throw new Error(data.message);
@@ -85,7 +85,7 @@ async function apiUploadResume(id: string, file: File) {
  fd.append('file', file);
  const res = await fetch(`/api/candidates/${id}/resume`, {
    method: 'POST',
-   headers: basicAuthFetchHeaders(false),
+   headers: bearerFetchHeaders(false),
    body: fd,
  });
  const data = await res.json();
@@ -236,7 +236,7 @@ const CandidateFormPage: React.FC = () => {
        } else {
          if (candidate.hasPhoto) {
            const res = await fetch(`/api/candidates/${id}/photo`, {
-             headers: basicAuthFetchHeaders(false),
+             headers: bearerFetchHeaders(false),
            });
            if (res.ok && !cancelled) {
              const blob = await res.blob();

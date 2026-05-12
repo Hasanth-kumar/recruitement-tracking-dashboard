@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { basicAuthFetchHeaders } from '../../../shared/utils/basicAuth';
+import { bearerFetchHeaders } from '../../../shared/utils/basicAuth';
 
 interface Props {
   candidateId: string;
@@ -18,7 +18,6 @@ const fb: React.CSSProperties = {
   flexShrink: 0,
 };
 
-/** Loads `/api/candidates/:id/photo` with Basic auth (plain `<img src>` cannot). */
 const AuthenticatedCandidateAvatar: React.FC<Props> = ({ candidateId, name, size = 34 }) => {
   const [src, setSrc] = useState<string | null>(null);
 
@@ -28,7 +27,7 @@ const AuthenticatedCandidateAvatar: React.FC<Props> = ({ candidateId, name, size
     (async () => {
       try {
         const res = await fetch(`/api/candidates/${candidateId}/photo`, {
-          headers: basicAuthFetchHeaders(false),
+          headers: bearerFetchHeaders(false),
         });
         if (!res.ok || cancelled) return;
         const blob = await res.blob();

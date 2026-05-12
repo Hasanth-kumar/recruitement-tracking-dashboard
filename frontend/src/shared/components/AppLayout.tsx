@@ -32,7 +32,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = () => {
-    ['rts_token', 'rts_role', 'rts_user', 'rts_basic_principal'].forEach(k => {
+    ['rts_token', 'rts_role', 'rts_user'].forEach(k => {
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
     });
@@ -123,7 +123,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             </div>
           )}
 
-          {hasRole(Role.ADMIN, Role.HR_MANAGER) && (
+          {hasRole(Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER, Role.INTERVIEWER) && (
             <div
               className={`app-layout-menu-item ${isActive('/feedback') ? 'active' : ''}`}
               onClick={() => navigate('/feedback')}

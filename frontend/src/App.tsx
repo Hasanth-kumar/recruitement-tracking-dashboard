@@ -62,7 +62,7 @@ function DashboardPage() {
               <UserOutlined className="dashboard-card-icon" aria-hidden />
               <div className="dashboard-card-title">Your profile</div>
               <p className="dashboard-card-desc">
-                Update your account details and password (HTTP Basic credentials).
+                Update your account details and password.
               </p>
             </button>
 
@@ -151,12 +151,12 @@ const App: React.FC = () => {
           }
         />
         <Route path="/feedback" element={
-          <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.INTERVIEWER]}>
+          <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER, Role.INTERVIEWER]}>
             <AppLayout><FeedbackListPage /></AppLayout>
           </ProtectedRoute>
         } />
         <Route path="/feedback/new" element={
-          <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.INTERVIEWER]}>
+          <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER, Role.INTERVIEWER]}>
             <AppLayout><FeedbackFormPage /></AppLayout>
           </ProtectedRoute>
         } />

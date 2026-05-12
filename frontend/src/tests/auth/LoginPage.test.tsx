@@ -60,6 +60,7 @@ describe('LoginPage Tests', () => {
               success: true,
               message: 'Login successful',
               data: {
+                accessToken: 'mock-jwt-token',
                 user: {
                   id: 'user-1',
                   username: 'admin',
