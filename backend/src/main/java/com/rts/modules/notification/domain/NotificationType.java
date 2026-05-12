@@ -3,6 +3,10 @@ package com.rts.modules.notification.domain;
 public enum NotificationType {
     INTERVIEW_SCHEDULED,
     INTERVIEW_RESCHEDULED,
+    INTERVIEW_CANCELLED,
     STAGE_UPDATED,
-    FEEDBACK_PENDING
+    FEEDBACK_PENDING,
+    CANDIDATE_REGISTERED,
+    PASSWORD_RESET,
+    EMAIL_VERIFICATION
 }

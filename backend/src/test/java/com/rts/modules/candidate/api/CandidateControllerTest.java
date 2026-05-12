@@ -11,6 +11,8 @@ import com.rts.modules.candidate.domain.Candidate;
 import com.rts.shared.exception.ResourceNotFoundException;
 import com.rts.shared.exception.GlobalExceptionHandler;
 import com.rts.shared.kernel.RecruitmentStage;
+import com.rts.infrastructure.security.CustomUserDetailsService;
+import com.rts.infrastructure.security.JwtService;
 import com.rts.shared.response.PagedResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,12 @@ class CandidateControllerTest {
 
     @MockBean
     private CandidateService candidateService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void createShouldReturn201WithPayloadAndUuid() throws Exception {

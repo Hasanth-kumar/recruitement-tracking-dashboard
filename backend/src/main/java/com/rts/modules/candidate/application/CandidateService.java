@@ -13,11 +13,14 @@ import com.rts.modules.candidate.persistence.CandidateDocumentRepository;
 import com.rts.modules.candidate.persistence.CandidateRepository;
 import com.rts.modules.candidate.persistence.CandidateSpecifications;
 import com.rts.modules.candidate.persistence.StageHistoryRepository;
+import com.rts.shared.events.CandidateRegisteredEvent;
+import com.rts.shared.events.CandidateStageChangedEvent;
 import com.rts.shared.exception.ConflictException;
 import com.rts.shared.exception.ResourceNotFoundException;
 import com.rts.shared.exception.ValidationException;
 import com.rts.shared.kernel.RecruitmentStage;
 import com.rts.shared.response.PagedResponse;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,15 +54,18 @@ public class CandidateService {
     private final CandidateRepository candidateRepository;
     private final CandidateDocumentRepository candidateDocumentRepository;
     private final StageHistoryRepository stageHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CandidateService(
             CandidateRepository candidateRepository,
             CandidateDocumentRepository candidateDocumentRepository,
-            StageHistoryRepository stageHistoryRepository
+            StageHistoryRepository stageHistoryRepository,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.candidateRepository = candidateRepository;
         this.candidateDocumentRepository = candidateDocumentRepository;
         this.stageHistoryRepository = stageHistoryRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
@@ -117,7 +123,16 @@ public class CandidateService {
         candidate.setExperience(trimToNull(request.experience()));
         candidate.setNotes(trimToNull(request.notes()));
 
-        return candidateRepository.save(candidate);
+        Candidate saved = candidateRepository.save(candidate);
+
+        eventPublisher.publishEvent(new CandidateRegisteredEvent(
+                saved.getId(),
+                saved.getName(),
+                saved.getEmail(),
+                saved.getPosition()
+        ));
+
+        return saved;
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
@@ -171,6 +186,10 @@ public class CandidateService {
         if (candidate.getStage() == request.stage()) {
             throw new ValidationException("Candidate is already in stage: " + request.stage().name());
         }
+
+        RecruitmentStage previousStage = candidate.getStage();
+        String changedBy = resolveAuthenticatedUser();
+
         candidate.setStage(request.stage());
         Candidate savedCandidate = candidateRepository.save(candidate);
 
@@ -178,8 +197,18 @@ public class CandidateService {
         stageHistory.setCandidateId(savedCandidate.getId());
         stageHistory.setStage(request.stage());
         stageHistory.setChangedAt(LocalDateTime.now());
-        stageHistory.setChangedBy(resolveAuthenticatedUser());
+        stageHistory.setChangedBy(changedBy);
         stageHistoryRepository.save(stageHistory);
+
+        eventPublisher.publishEvent(new CandidateStageChangedEvent(
+                savedCandidate.getId(),
+                savedCandidate.getName(),
+                savedCandidate.getEmail(),
+                savedCandidate.getPosition(),
+                previousStage,
+                request.stage(),
+                changedBy
+        ));
 
         return toResponseWithDocumentFlags(savedCandidate);
     }
@@ -208,10 +237,13 @@ public class CandidateService {
         List<StageHistory> historyEntries = new ArrayList<>();
         List<String> updatedIds = new ArrayList<>();
 
+        List<CandidateStageChangedEvent> stageEvents = new ArrayList<>();
+
         for (Candidate candidate : candidates) {
             if (candidate.getStage() == targetStage) {
                 continue;
             }
+            RecruitmentStage previousStage = candidate.getStage();
             candidate.setStage(targetStage);
             updatedIds.add(candidate.getId());
 
@@ -221,12 +253,24 @@ public class CandidateService {
             stageHistory.setChangedAt(changedAt);
             stageHistory.setChangedBy(changedBy);
             historyEntries.add(stageHistory);
+
+            stageEvents.add(new CandidateStageChangedEvent(
+                    candidate.getId(),
+                    candidate.getName(),
+                    candidate.getEmail(),
+                    candidate.getPosition(),
+                    previousStage,
+                    targetStage,
+                    changedBy
+            ));
         }
 
         candidateRepository.saveAll(candidates);
         if (!historyEntries.isEmpty()) {
             stageHistoryRepository.saveAll(historyEntries);
         }
+
+        stageEvents.forEach(eventPublisher::publishEvent);
 
         return new BulkStageUpdateResponse(uniqueIds.size(), updatedIds.size(), updatedIds);
     }

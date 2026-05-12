@@ -21,9 +21,30 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   jackson:
     serialization:
       write-dates-as-timestamps: false
+
+rts:
+  base-url: ${RTS_BASE_URL:http://localhost:8080}
+  jwt:
+    secret: ${JWT_SECRET:c2VjdXJlLXJ0cy1qd3Qtc2VjcmV0LWtleS10aGF0LWlzLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc=}
+    expiration-ms: 7200000
+  mail:
+    enabled: ${MAIL_ENABLED:true}
+    from: ${MAIL_FROM:noreply@rts.com}
 
 springdoc:
   swagger-ui:

@@ -1,6 +1,7 @@
 package com.rts.security;
 
 import com.rts.modules.auth.api.dto.UpdateUserProfileRequest;
+import com.rts.infrastructure.security.JwtService;
 import com.rts.modules.auth.application.AuthService;
 import com.rts.modules.auth.application.UserService;
 import com.rts.modules.auth.domain.Role;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Page;
@@ -253,8 +255,13 @@ class SprintOneServiceRbacTest {
         }
 
         @Bean
-        AuthService authService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-            return new AuthService(userRepository, passwordEncoder);
+        JwtService jwtService() {
+            return Mockito.mock(JwtService.class);
+        }
+
+        @Bean
+        AuthService authService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+            return new AuthService(userRepository, passwordEncoder, jwtService);
         }
 
         @Bean
@@ -263,12 +270,18 @@ class SprintOneServiceRbacTest {
         }
 
         @Bean
+        ApplicationEventPublisher applicationEventPublisher() {
+            return Mockito.mock(ApplicationEventPublisher.class);
+        }
+
+        @Bean
         CandidateService candidateService(
                 CandidateRepository candidateRepository,
                 CandidateDocumentRepository candidateDocumentRepository,
-                StageHistoryRepository stageHistoryRepository
+                StageHistoryRepository stageHistoryRepository,
+                ApplicationEventPublisher applicationEventPublisher
         ) {
-            return new CandidateService(candidateRepository, candidateDocumentRepository, stageHistoryRepository);
+            return new CandidateService(candidateRepository, candidateDocumentRepository, stageHistoryRepository, applicationEventPublisher);
         }
 
         @Bean

@@ -3,6 +3,7 @@ package com.rts.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rts.RtsApplication;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,9 +53,23 @@ class SprintOneIntegrationIT {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private String recruiterToken;
+
     @DynamicPropertySource
     static void configureTestOverrides(DynamicPropertyRegistry registry) {
         registry.add("rts.storage.upload-dir", () -> UPLOAD_DIR.toAbsolutePath().toString());
+    }
+
+    @BeforeEach
+    void obtainRecruiterToken() throws Exception {
+        String loginBody = """
+                {"usernameOrEmail":"recruiter","password":"Recruiter@123"}
+                """;
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/auth/login", HttpMethod.POST,
+                new HttpEntity<>(loginBody, jsonHeaders()), String.class);
+        JsonNode json = objectMapper.readTree(response.getBody());
+        recruiterToken = json.path("data").path("accessToken").asText();
     }
 
     private static HttpHeaders jsonHeaders() {
@@ -63,24 +78,16 @@ class SprintOneIntegrationIT {
         return headers;
     }
 
-    private static HttpHeaders recruiterJsonHeaders() {
+    private HttpHeaders bearerJsonHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBasicAuth("recruiter", "Recruiter@123");
+        headers.setBearerAuth(recruiterToken);
         return headers;
     }
 
-    /** Basic-auth only (GET/DELETE); avoids attaching a JSON Content-Type without a body. */
-    private static HttpHeaders recruiterAuthHeaders() {
+    private HttpHeaders bearerHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("recruiter", "Recruiter@123");
-        return headers;
-    }
-
-    /** Multipart uploads — Let RestTemplate set the boundary; only attach credentials here. */
-    private static HttpHeaders recruiterMultipartHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("recruiter", "Recruiter@123");
+        headers.setBearerAuth(recruiterToken);
         return headers;
     }
 
@@ -110,6 +117,7 @@ class SprintOneIntegrationIT {
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode loginJson = objectMapper.readTree(loginResponse.getBody());
         assertThat(loginJson.path("success").asBoolean()).isTrue();
+        assertThat(loginJson.path("data").path("accessToken").asText()).isNotBlank();
         assertThat(loginJson.path("data").path("user").path("role").asText()).isEqualTo("ADMIN");
 
         String uniqueEmail = "it-" + UUID.randomUUID() + "@test.local";
@@ -120,7 +128,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> createResponse = restTemplate.exchange(
                 "/api/candidates",
                 HttpMethod.POST,
-                new HttpEntity<>(createBody, recruiterJsonHeaders()),
+                new HttpEntity<>(createBody, bearerJsonHeaders()),
                 String.class
         );
 
@@ -132,7 +140,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> searchResponse = restTemplate.exchange(
                 "/api/candidates?search=Integration",
                 HttpMethod.GET,
-                new HttpEntity<>(recruiterAuthHeaders()),
+                new HttpEntity<>(bearerHeaders()),
                 String.class
         );
         assertThat(searchResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -146,7 +154,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> updateResponse = restTemplate.exchange(
                 "/api/candidates/" + candidateId,
                 HttpMethod.PUT,
-                new HttpEntity<>(updateBody, recruiterJsonHeaders()),
+                new HttpEntity<>(updateBody, bearerJsonHeaders()),
                 String.class
         );
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -162,7 +170,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> resumeResponse = restTemplate.exchange(
                 "/api/candidates/" + candidateId + "/resume",
                 HttpMethod.POST,
-                new HttpEntity<>(resumeParts, recruiterMultipartHeaders()),
+                new HttpEntity<>(resumeParts, bearerHeaders()),
                 String.class
         );
         assertThat(resumeResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -178,7 +186,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> photoResponse = restTemplate.exchange(
                 "/api/candidates/" + candidateId + "/photo",
                 HttpMethod.POST,
-                new HttpEntity<>(photoParts, recruiterMultipartHeaders()),
+                new HttpEntity<>(photoParts, bearerHeaders()),
                 String.class
         );
         assertThat(photoResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -187,7 +195,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> stageResponse = restTemplate.exchange(
                 "/api/candidates/" + candidateId + "/stage",
                 HttpMethod.PUT,
-                new HttpEntity<>(stageBody, recruiterJsonHeaders()),
+                new HttpEntity<>(stageBody, bearerJsonHeaders()),
                 String.class
         );
         assertThat(stageResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -195,7 +203,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> historyResponse = restTemplate.exchange(
                 "/api/candidates/" + candidateId + "/stage-history",
                 HttpMethod.GET,
-                new HttpEntity<>(recruiterAuthHeaders()),
+                new HttpEntity<>(bearerHeaders()),
                 String.class
         );
         assertThat(historyResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -206,7 +214,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> deleteResponse = restTemplate.exchange(
                 "/api/candidates/" + candidateId,
                 HttpMethod.DELETE,
-                new HttpEntity<>(recruiterAuthHeaders()),
+                new HttpEntity<>(bearerHeaders()),
                 String.class
         );
         assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -214,7 +222,7 @@ class SprintOneIntegrationIT {
         ResponseEntity<String> missingResponse = restTemplate.exchange(
                 "/api/candidates/" + candidateId,
                 HttpMethod.GET,
-                new HttpEntity<>(recruiterAuthHeaders()),
+                new HttpEntity<>(bearerHeaders()),
                 String.class
         );
         assertThat(missingResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);

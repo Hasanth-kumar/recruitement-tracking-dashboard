@@ -18,6 +18,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,6 +48,7 @@ public class InterviewController {
     }
 
     @Operation(summary = "Schedule Round 1 interview", description = "Schedules Round 1 interview with conflict validation and stage auto-update.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PostMapping("/round1")
     public ResponseEntity<ApiResponse<InterviewResponse>> scheduleRoundOne(
             @Valid @RequestBody ScheduleRoundOneInterviewRequest request
@@ -57,6 +59,7 @@ public class InterviewController {
     }
 
     @Operation(summary = "Schedule Round 2 interview", description = "Schedules Round 2 interview with R1 cleared prerequisite and conflict validation.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PostMapping("/round2")
     public ResponseEntity<ApiResponse<InterviewResponse>> scheduleRoundTwo(
             @Valid @RequestBody ScheduleRoundTwoInterviewRequest request
@@ -70,6 +73,7 @@ public class InterviewController {
             summary = "Get interview schedule",
             description = "Returns scheduled interviews filtered by date-time range and optional interviewer username."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'HR_MANAGER', 'INTERVIEWER')")
     @GetMapping("/schedule")
     public ResponseEntity<ApiResponse<List<InterviewResponse>>> getSchedule(
             @Parameter(description = "Inclusive start date-time (ISO-8601)")
@@ -87,6 +91,7 @@ public class InterviewController {
             summary = "Reschedule interview",
             description = "Reschedules an existing interview with conflict validation and notification update."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PutMapping("/{id}/reschedule")
     public ResponseEntity<ApiResponse<InterviewResponse>> rescheduleInterview(
             @PathVariable String id,
@@ -100,6 +105,7 @@ public class InterviewController {
             summary = "Cancel interview",
             description = "Cancels a scheduled interview, marks status as CANCELLED, and rolls candidate stage back."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<InterviewResponse>> cancelInterview(
             @PathVariable String id,
@@ -113,6 +119,7 @@ public class InterviewController {
             summary = "Upload interview photos",
             description = "Uploads up to 10 JPG/PNG photos for an interview. Each file must be <= 5MB."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'INTERVIEWER')")
     @PostMapping(path = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<List<InterviewPhotoUploadResponse>>> uploadInterviewPhotos(
             @PathVariable String id,

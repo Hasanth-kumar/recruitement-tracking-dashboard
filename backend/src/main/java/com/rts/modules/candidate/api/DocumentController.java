@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +37,7 @@ public class DocumentController {
             summary = "Upload candidate resume",
             description = "Uploads a candidate resume (PDF/DOC/DOCX, max 5MB). Replaces existing resume if present."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PostMapping(path = "/{id}/resume", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentUploadResponse>> uploadResume(
             @PathVariable("id") String candidateId,
@@ -50,6 +52,7 @@ public class DocumentController {
             summary = "Upload candidate photo",
             description = "Uploads a candidate photo (JPG/PNG, max 2MB) with server-side compression. Replaces existing photo if present."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PostMapping(path = "/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DocumentUploadResponse>> uploadPhoto(
             @PathVariable("id") String candidateId,
@@ -64,6 +67,7 @@ public class DocumentController {
             summary = "Delete candidate photo",
             description = "Removes the stored photo for the candidate if one exists. Idempotent when no photo is on file."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @DeleteMapping(path = "/{id}/photo")
     public ResponseEntity<ApiResponse<Object>> deletePhoto(@PathVariable("id") String candidateId) {
         documentService.deletePhoto(candidateId);
@@ -71,6 +75,7 @@ public class DocumentController {
     }
 
     @Operation(summary = "Download candidate photo", description = "Returns the stored photo bytes (JPG/PNG).")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
     @GetMapping(path = "/{id}/photo")
     public ResponseEntity<Resource> downloadPhoto(@PathVariable("id") String candidateId) {
         DocumentService.ServedDocument served = documentService.loadPhoto(candidateId);
@@ -80,6 +85,7 @@ public class DocumentController {
     }
 
     @Operation(summary = "Download candidate resume", description = "Returns the stored resume file.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
     @GetMapping(path = "/{id}/resume")
     public ResponseEntity<Resource> downloadResume(@PathVariable("id") String candidateId) {
         DocumentService.ServedDocument served = documentService.loadResume(candidateId);

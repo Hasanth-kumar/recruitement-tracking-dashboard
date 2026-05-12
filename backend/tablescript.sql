@@ -110,6 +110,35 @@ CREATE TABLE IF NOT EXISTS feedback (
     UNIQUE KEY uk_feedback_interview_submitter (interview_id, submitted_by_username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS interview_history (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    interview_id VARCHAR(36) NOT NULL,
+    action_type VARCHAR(30) NOT NULL,
+    details VARCHAR(2000) NOT NULL,
+    changed_by VARCHAR(100) NOT NULL,
+    changed_at DATETIME NOT NULL,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_interview_history_interview FOREIGN KEY (interview_id) REFERENCES interviews (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS interview_photos (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    interview_id VARCHAR(36) NOT NULL,
+    original_file_name VARCHAR(255) NOT NULL,
+    stored_file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    content_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+    caption VARCHAR(500) NULL,
+    uploaded_at DATETIME NOT NULL,
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_interview_photos_interview FOREIGN KEY (interview_id) REFERENCES interviews (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS notifications (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     user_id VARCHAR(100) NOT NULL,
@@ -119,6 +148,15 @@ CREATE TABLE IF NOT EXISTS notifications (
     is_deleted TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS email_audit (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    recipient VARCHAR(255) NOT NULL,
+    subject VARCHAR(500) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    error_message VARCHAR(1000) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
@@ -146,6 +184,9 @@ DEALLOCATE PREPARE patch_eval_score_stmt;
 
 -- feedback: defined once above (CREATE TABLE IF NOT EXISTS feedback). Re-running this script
 -- on an old DB creates that table if it was missing; no separate ALTER required.
+
+-- interview_history, interview_photos, email_audit: defined above with CREATE TABLE IF NOT EXISTS.
+-- Re-running this script on an older DB creates them if missing; no separate ALTER required.
 
 -- Optional seed admin (password: Admin@123). BCrypt strength 12, Spring-compatible ($2a$).
 -- With the default app profile, DataSeeder also creates this user if missing.

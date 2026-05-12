@@ -16,6 +16,7 @@ import com.rts.modules.interview.domain.InterviewRound;
 import com.rts.modules.interview.domain.InterviewStatus;
 import com.rts.modules.interview.persistence.InterviewHistoryRepository;
 import com.rts.modules.interview.persistence.InterviewRepository;
+import com.rts.shared.events.InterviewCancelledEvent;
 import com.rts.shared.events.InterviewRescheduledEvent;
 import com.rts.shared.events.InterviewScheduledEvent;
 import com.rts.shared.exception.ConflictException;
@@ -458,15 +459,22 @@ class InterviewServiceTest {
 
     @Test
     void cancelInterviewShouldCancelAndRollbackStageForRoundOne() {
+        LocalDateTime scheduledAt = LocalDateTime.now().plusDays(2);
         Interview interview = new Interview();
         interview.setId("interview-c1");
         interview.setCandidateId("candidate-c1");
         interview.setRound(InterviewRound.ROUND_1);
         interview.setStatus(InterviewStatus.SCHEDULED);
+        interview.setDateTime(scheduledAt);
+        interview.setDurationMinutes(45);
+        interview.setMeetingLink("https://meet.google.com/c1-test");
+        interview.setInterviewerUsernames(List.of("interviewer.a"));
         interview.setNotes("Initial notes");
 
         Candidate candidate = new Candidate();
         candidate.setId("candidate-c1");
+        candidate.setName("Test Candidate");
+        candidate.setEmail("test@example.com");
         candidate.setStage(RecruitmentStage.R1_SCHEDULED);
 
         when(interviewRepository.findById("interview-c1")).thenReturn(Optional.of(interview));
@@ -487,6 +495,12 @@ class InterviewServiceTest {
         ArgumentCaptor<InterviewHistory> historyCaptor = ArgumentCaptor.forClass(InterviewHistory.class);
         verify(interviewHistoryRepository).save(historyCaptor.capture());
         assertThat(historyCaptor.getValue().getActionType()).isEqualTo(InterviewActionType.CANCELLED);
+
+        ArgumentCaptor<InterviewCancelledEvent> eventCaptor = ArgumentCaptor.forClass(InterviewCancelledEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().interviewId()).isEqualTo("interview-c1");
+        assertThat(eventCaptor.getValue().candidateName()).isEqualTo("Test Candidate");
+        assertThat(eventCaptor.getValue().reason()).isEqualTo("No panel");
     }
 
     @Test
@@ -509,9 +523,15 @@ class InterviewServiceTest {
         interview.setCandidateId("candidate-c3");
         interview.setRound(InterviewRound.ROUND_2);
         interview.setStatus(InterviewStatus.SCHEDULED);
+        interview.setDateTime(LocalDateTime.now().plusDays(3));
+        interview.setDurationMinutes(60);
+        interview.setLocation("Room 5B");
+        interview.setInterviewerUsernames(List.of("interviewer.b"));
 
         Candidate candidate = new Candidate();
         candidate.setId("candidate-c3");
+        candidate.setName("R2 Candidate");
+        candidate.setEmail("r2@example.com");
         candidate.setStage(RecruitmentStage.R2_SCHEDULED);
 
         when(interviewRepository.findById("interview-c3")).thenReturn(Optional.of(interview));
@@ -519,9 +539,14 @@ class InterviewServiceTest {
         when(candidateRepository.findByIdAndDeletedFalse("candidate-c3")).thenReturn(Optional.of(candidate));
         when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated("recruiter.user", null, List.of())
+        );
+
         interviewService.cancelInterview("interview-c3", new CancelInterviewRequest("Panel unavailable"));
 
         assertThat(candidate.getStage()).isEqualTo(RecruitmentStage.R1_CLEARED);
+        verify(applicationEventPublisher).publishEvent(any(InterviewCancelledEvent.class));
     }
 
     @Test
@@ -531,16 +556,25 @@ class InterviewServiceTest {
         interview.setCandidateId("candidate-c5");
         interview.setRound(InterviewRound.ROUND_1);
         interview.setStatus(InterviewStatus.SCHEDULED);
+        interview.setDateTime(LocalDateTime.now().plusDays(1));
+        interview.setDurationMinutes(30);
+        interview.setMeetingLink("https://meet.google.com/c5");
+        interview.setInterviewerUsernames(List.of("interviewer.c"));
         interview.setNotes("a".repeat(995));
 
         Candidate candidate = new Candidate();
         candidate.setId("candidate-c5");
+        candidate.setName("Trim Candidate");
         candidate.setStage(RecruitmentStage.R1_SCHEDULED);
 
         when(interviewRepository.findById("interview-c5")).thenReturn(Optional.of(interview));
         when(interviewRepository.save(any(Interview.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(candidateRepository.findByIdAndDeletedFalse("candidate-c5")).thenReturn(Optional.of(candidate));
         when(candidateRepository.save(any(Candidate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated("recruiter.user", null, List.of())
+        );
 
         interviewService.cancelInterview("interview-c5", new CancelInterviewRequest("No panel"));
 
@@ -555,9 +589,15 @@ class InterviewServiceTest {
         interview.setCandidateId("candidate-c6");
         interview.setRound(InterviewRound.ROUND_1);
         interview.setStatus(InterviewStatus.SCHEDULED);
+        interview.setDateTime(LocalDateTime.now().plusDays(1));
+        interview.setDurationMinutes(45);
+        interview.setMeetingLink("https://meet.google.com/c6");
+        interview.setInterviewerUsernames(List.of("interviewer.d"));
 
         Candidate candidate = new Candidate();
         candidate.setId("candidate-c6");
+        candidate.setName("Null Request Candidate");
+        candidate.setEmail("null-req@example.com");
         candidate.setStage(RecruitmentStage.R1_SCHEDULED);
 
         when(interviewRepository.findById("interview-c6")).thenReturn(Optional.of(interview));
@@ -575,6 +615,10 @@ class InterviewServiceTest {
         ArgumentCaptor<InterviewHistory> historyCaptor = ArgumentCaptor.forClass(InterviewHistory.class);
         verify(interviewHistoryRepository).save(historyCaptor.capture());
         assertThat(historyCaptor.getValue().getDetails()).isEqualTo("Interview cancelled");
+
+        ArgumentCaptor<InterviewCancelledEvent> eventCaptor = ArgumentCaptor.forClass(InterviewCancelledEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().reason()).isNull();
     }
 
     @Test

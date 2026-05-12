@@ -4,6 +4,8 @@ import com.rts.modules.interview.api.dto.InterviewResponse;
 import com.rts.modules.interview.api.dto.CancelInterviewRequest;
 import com.rts.modules.interview.api.dto.RescheduleInterviewRequest;
 import com.rts.modules.interview.api.dto.ScheduleRoundTwoInterviewRequest;
+import com.rts.infrastructure.security.CustomUserDetailsService;
+import com.rts.infrastructure.security.JwtService;
 import com.rts.modules.interview.application.InterviewPhotoService;
 import com.rts.modules.interview.application.InterviewService;
 import com.rts.modules.interview.domain.InterviewPhoto;
@@ -47,6 +49,12 @@ class InterviewControllerTest {
 
     @MockBean
     private InterviewPhotoService interviewPhotoService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void getScheduleShouldRequireDateRangeParams() throws Exception {

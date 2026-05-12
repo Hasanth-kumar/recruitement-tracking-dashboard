@@ -3,3 +3,8 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+rts:
+  base-url: ${RTS_BASE_URL:http://localhost:8080}
+  mail:
+    enabled: ${MAIL_ENABLED:false}

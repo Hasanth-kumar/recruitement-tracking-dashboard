@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
@@ -58,12 +59,15 @@ class CandidateServiceTest {
     @Mock
     private StageHistoryRepository stageHistoryRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private CandidateService candidateService;
 
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        candidateService = new CandidateService(candidateRepository, candidateDocumentRepository, stageHistoryRepository);
+        candidateService = new CandidateService(candidateRepository, candidateDocumentRepository, stageHistoryRepository, eventPublisher);
         lenient().when(candidateDocumentRepository.findCandidateIdsWithDocumentType(
                 any(CandidateDocumentType.class),
                 anyCollection()

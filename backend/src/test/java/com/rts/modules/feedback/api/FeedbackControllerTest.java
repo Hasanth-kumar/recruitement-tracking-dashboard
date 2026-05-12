@@ -2,6 +2,8 @@ package com.rts.modules.feedback.api;
 
 import com.rts.modules.feedback.api.dto.CandidateFeedbackSummaryResponse;
 import com.rts.modules.feedback.api.dto.FeedbackResponse;
+import com.rts.infrastructure.security.CustomUserDetailsService;
+import com.rts.infrastructure.security.JwtService;
 import com.rts.modules.feedback.application.FeedbackService;
 import com.rts.modules.feedback.domain.FeedbackRecommendation;
 import com.rts.shared.exception.GlobalExceptionHandler;
@@ -35,6 +37,12 @@ class FeedbackControllerTest {
 
     @MockBean
     private FeedbackService feedbackService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void postFeedbackShouldReturn201() throws Exception {

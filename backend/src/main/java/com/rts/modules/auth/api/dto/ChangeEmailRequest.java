@@ -1,0 +1,13 @@
+package com.rts.modules.auth.api.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record ChangeEmailRequest(
+        @NotBlank(message = "New email is required")
+        @Email(message = "Email must be valid")
+        @Size(max = 255, message = "Email cannot exceed 255 characters")
+        String newEmail
+) {
+}

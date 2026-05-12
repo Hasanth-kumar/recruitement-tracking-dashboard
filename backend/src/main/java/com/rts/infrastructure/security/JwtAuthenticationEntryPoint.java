@@ -6,7 +6,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
@@ -15,11 +14,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 @Component
-public class BasicAuthEntryPoint implements AuthenticationEntryPoint {
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
 
-    public BasicAuthEntryPoint(ObjectMapper objectMapper) {
+    public JwtAuthenticationEntryPoint(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -32,9 +31,7 @@ public class BasicAuthEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        String message = authException instanceof BadCredentialsException
-                ? "Invalid username or password"
-                : "Authentication required";
-        response.getWriter().write(objectMapper.writeValueAsString(ApiResponse.failure(message)));
+        response.getWriter().write(objectMapper.writeValueAsString(
+                ApiResponse.failure("Authentication required. Please provide a valid JWT token.")));
     }
 }

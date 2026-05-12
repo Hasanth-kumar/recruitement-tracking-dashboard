@@ -29,6 +29,12 @@ public class User extends AuditableEntity implements UserDetails {
     @Column(name = "role", length = 50, nullable = false)
     private Role role = Role.RECRUITER;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(name = "pending_email", length = 255)
+    private String pendingEmail;
+
     public String getUsername() {
         return username;
     }
@@ -60,6 +66,22 @@ public class User extends AuditableEntity implements UserDetails {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getPendingEmail() {
+        return pendingEmail;
+    }
+
+    public void setPendingEmail(String pendingEmail) {
+        this.pendingEmail = pendingEmail;
     }
 
     @Override

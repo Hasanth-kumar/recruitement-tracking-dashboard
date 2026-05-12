@@ -7,14 +7,18 @@ public record UserProfileResponse(
         String id,
         String username,
         String email,
-        Role role
+        Role role,
+        boolean emailVerified,
+        String pendingEmail
 ) {
     public static UserProfileResponse from(User user) {
         return new UserProfileResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getRole()
+                user.getRole(),
+                user.isEmailVerified(),
+                user.getPendingEmail()
         );
     }
 }

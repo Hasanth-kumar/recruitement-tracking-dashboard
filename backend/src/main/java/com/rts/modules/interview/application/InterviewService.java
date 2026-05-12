@@ -16,6 +16,7 @@ import com.rts.modules.interview.domain.InterviewRound;
 import com.rts.modules.interview.domain.InterviewStatus;
 import com.rts.modules.interview.persistence.InterviewHistoryRepository;
 import com.rts.modules.interview.persistence.InterviewRepository;
+import com.rts.shared.events.InterviewCancelledEvent;
 import com.rts.shared.events.InterviewRescheduledEvent;
 import com.rts.shared.events.InterviewScheduledEvent;
 import com.rts.shared.exception.ConflictException;
@@ -102,10 +103,15 @@ public class InterviewService {
         applicationEventPublisher.publishEvent(new InterviewScheduledEvent(
                 savedInterview.getId(),
                 savedInterview.getCandidateId(),
+                candidate.getName(),
+                candidate.getEmail(),
                 savedInterview.getRound(),
                 savedInterview.getDateTime(),
                 savedInterview.getDurationMinutes(),
                 savedInterview.getInterviewerUsernames(),
+                savedInterview.getMeetingLink(),
+                savedInterview.getLocation(),
+                savedInterview.getNotes(),
                 changedBy
         ));
 
@@ -155,10 +161,15 @@ public class InterviewService {
         applicationEventPublisher.publishEvent(new InterviewScheduledEvent(
                 savedInterview.getId(),
                 savedInterview.getCandidateId(),
+                candidate.getName(),
+                candidate.getEmail(),
                 savedInterview.getRound(),
                 savedInterview.getDateTime(),
                 savedInterview.getDurationMinutes(),
                 savedInterview.getInterviewerUsernames(),
+                savedInterview.getMeetingLink(),
+                savedInterview.getLocation(),
+                savedInterview.getNotes(),
                 changedBy
         ));
 
@@ -247,14 +258,22 @@ public class InterviewService {
 
         Interview savedInterview = interviewRepository.save(interview);
 
+        Candidate candidate = candidateRepository.findByIdAndDeletedFalse(savedInterview.getCandidateId())
+                .orElse(null);
+
         applicationEventPublisher.publishEvent(new InterviewRescheduledEvent(
                 savedInterview.getId(),
                 savedInterview.getCandidateId(),
+                candidate != null ? candidate.getName() : null,
+                candidate != null ? candidate.getEmail() : null,
                 savedInterview.getRound(),
                 previousDateTime,
                 savedInterview.getDateTime(),
                 savedInterview.getDurationMinutes(),
                 savedInterview.getInterviewerUsernames(),
+                savedInterview.getMeetingLink(),
+                savedInterview.getLocation(),
+                savedInterview.getNotes(),
                 changedBy,
                 trimToNull(request.rescheduleReason())
         ));
@@ -304,6 +323,21 @@ public class InterviewService {
         stageHistory.setChangedAt(LocalDateTime.now());
         stageHistory.setChangedBy(changedBy);
         stageHistoryRepository.save(stageHistory);
+
+        applicationEventPublisher.publishEvent(new InterviewCancelledEvent(
+                savedInterview.getId(),
+                savedInterview.getCandidateId(),
+                candidate.getName(),
+                candidate.getEmail(),
+                savedInterview.getRound(),
+                savedInterview.getDateTime(),
+                savedInterview.getDurationMinutes(),
+                savedInterview.getInterviewerUsernames(),
+                savedInterview.getMeetingLink(),
+                savedInterview.getLocation(),
+                reason,
+                changedBy
+        ));
 
         return InterviewResponse.from(savedInterview);
     }

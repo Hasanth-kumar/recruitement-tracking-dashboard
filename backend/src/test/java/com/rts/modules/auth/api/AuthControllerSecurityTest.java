@@ -1,10 +1,14 @@
 package com.rts.modules.auth.api;
 
 import com.rts.infrastructure.config.SecurityConfig;
-import com.rts.infrastructure.security.BasicAuthEntryPoint;
+import com.rts.infrastructure.security.JwtAuthenticationEntryPoint;
+import com.rts.infrastructure.security.CustomUserDetailsService;
+import com.rts.infrastructure.security.JwtAuthenticationFilter;
+import com.rts.infrastructure.security.JwtService;
 import com.rts.modules.auth.api.dto.LoginRequest;
 import com.rts.modules.auth.api.dto.LoginResponse;
 import com.rts.modules.auth.application.AuthService;
+import com.rts.modules.auth.application.EmailVerificationService;
 import com.rts.modules.auth.domain.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -24,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AuthController.class)
-@Import({SecurityConfig.class, BasicAuthEntryPoint.class})
+@Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class, JwtAuthenticationFilter.class})
 class AuthControllerSecurityTest {
 
     @Autowired
@@ -35,6 +39,15 @@ class AuthControllerSecurityTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private EmailVerificationService emailVerificationService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void loginShouldReturn400WhenCredentialsAreMissing() throws Exception {
@@ -75,7 +88,7 @@ class AuthControllerSecurityTest {
     @Test
     void loginShouldReturnRoleForValidCredentials() throws Exception {
         LoginRequest request = new LoginRequest("admin", "password");
-        LoginResponse response = LoginResponse.of("user-1", "admin", "admin@rts.com", Role.ADMIN);
+        LoginResponse response = LoginResponse.of("test-token", "user-1", "admin", "admin@rts.com", Role.ADMIN);
         when(authService.login(any(LoginRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/login")
@@ -84,6 +97,7 @@ class AuthControllerSecurityTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Login successful"))
+                .andExpect(jsonPath("$.data.accessToken").value("test-token"))
                 .andExpect(jsonPath("$.data.user.username").value("admin"))
                 .andExpect(jsonPath("$.data.user.role").value("ADMIN"));
     }

@@ -1,5 +1,6 @@
 package com.rts.modules.auth.application;
 
+import com.rts.infrastructure.security.JwtService;
 import com.rts.modules.auth.api.dto.LoginRequest;
 import com.rts.modules.auth.api.dto.LoginResponse;
 import com.rts.modules.auth.domain.Role;
@@ -10,12 +11,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,11 +32,14 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private JwtService jwtService;
+
     private AuthService authService;
 
     @Test
     void loginShouldReturnUserInfoForValidCredentials() {
-        authService = new AuthService(userRepository, passwordEncoder);
+        authService = new AuthService(userRepository, passwordEncoder, jwtService);
         LoginRequest request = new LoginRequest("recruiter", "password");
 
         User user = new User();
@@ -43,9 +51,11 @@ class AuthServiceTest {
 
         when(userRepository.findByUsernameOrEmail("recruiter", "recruiter")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password", "hashed-password")).thenReturn(true);
+        when(jwtService.generateToken(any(Map.class), any(UserDetails.class))).thenReturn("test-jwt-token");
 
         LoginResponse response = authService.login(request);
 
+        assertThat(response.accessToken()).isEqualTo("test-jwt-token");
         assertThat(response.user().id()).isEqualTo("user-1");
         assertThat(response.user().username()).isEqualTo("recruiter");
         assertThat(response.user().email()).isEqualTo("recruiter@rts.com");
@@ -54,7 +64,7 @@ class AuthServiceTest {
 
     @Test
     void loginShouldThrowWhenUserIsNotFound() {
-        authService = new AuthService(userRepository, passwordEncoder);
+        authService = new AuthService(userRepository, passwordEncoder, jwtService);
         LoginRequest request = new LoginRequest("unknown", "password");
 
         when(userRepository.findByUsernameOrEmail("unknown", "unknown")).thenReturn(Optional.empty());
@@ -66,7 +76,7 @@ class AuthServiceTest {
 
     @Test
     void loginShouldThrowWhenPasswordIsInvalid() {
-        authService = new AuthService(userRepository, passwordEncoder);
+        authService = new AuthService(userRepository, passwordEncoder, jwtService);
         LoginRequest request = new LoginRequest("recruiter", "wrong-password");
 
         User user = new User();

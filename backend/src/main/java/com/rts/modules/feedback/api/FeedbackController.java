@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +34,7 @@ public class FeedbackController {
             description = "Creates feedback or updates the caller's existing row within 24 hours of first submission. "
                     + "Updates the candidate evaluation score as the average of per-feedback mean ratings (1–5 scale)."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
     @PostMapping("/feedback")
     public ResponseEntity<ApiResponse<FeedbackResponse>> submit(@Valid @RequestBody SubmitFeedbackRequest request) {
         FeedbackResponse body = feedbackService.submit(request);
@@ -44,6 +46,7 @@ public class FeedbackController {
             summary = "Get all feedback for a candidate",
             description = "Returns all feedback entries for a candidate with per-category averages and overall average rating."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
     @GetMapping("/candidates/{candidateId}/feedback")
     public ResponseEntity<ApiResponse<CandidateFeedbackSummaryResponse>> getCandidateFeedback(
             @PathVariable String candidateId

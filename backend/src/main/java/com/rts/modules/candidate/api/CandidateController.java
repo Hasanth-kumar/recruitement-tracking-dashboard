@@ -19,8 +19,10 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,7 +32,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -53,6 +54,7 @@ public class CandidateController {
                     + "Sort via repeated `sort` params (e.g. sort=name,asc&sort=createdAt,desc). Allowed sort fields: "
                     + "name, email, position, stage, createdAt, updatedAt. Default page size is 20."
     )
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
     @GetMapping
     public ResponseEntity<ApiResponse<PagedResponse<CandidateResponse>>> list(
             @Parameter(description = "Filter by recruitment stage")
@@ -72,6 +74,7 @@ public class CandidateController {
     }
 
     @Operation(summary = "Get candidate by id", description = "Returns one non-deleted candidate with document flags.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CandidateResponse>> getById(@PathVariable String id) {
         CandidateResponse dto = candidateService.getById(id);
@@ -79,6 +82,7 @@ public class CandidateController {
     }
 
     @Operation(summary = "Create candidate", description = "Creates a candidate with validation and UUID identity.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PostMapping
     public ResponseEntity<ApiResponse<CandidateResponse>> create(@Valid @RequestBody CreateCandidateRequest request) {
         Candidate created = candidateService.create(request);
@@ -87,6 +91,7 @@ public class CandidateController {
     }
 
     @Operation(summary = "Update candidate", description = "Updates core candidate fields.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CandidateResponse>> update(
             @PathVariable String id,
@@ -97,6 +102,7 @@ public class CandidateController {
     }
 
     @Operation(summary = "Soft-delete candidate", description = "Marks the candidate as deleted.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> delete(@PathVariable String id) {
         candidateService.softDelete(id);
@@ -104,6 +110,7 @@ public class CandidateController {
     }
 
     @Operation(summary = "Update recruitment stage", description = "Sets the candidate's current stage.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'HR_MANAGER')")
     @PutMapping("/{id}/stage")
     public ResponseEntity<ApiResponse<CandidateResponse>> updateStage(
             @PathVariable String id,
@@ -114,6 +121,7 @@ public class CandidateController {
     }
 
     @Operation(summary = "Get stage history", description = "Returns stage change history for the candidate.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'HR_MANAGER')")
     @GetMapping("/{id}/stage-history")
     public ResponseEntity<ApiResponse<List<StageHistoryResponse>>> getStageHistory(@PathVariable String id) {
         List<StageHistoryResponse> history = candidateService.getStageHistory(id);
@@ -121,6 +129,7 @@ public class CandidateController {
     }
 
     @Operation(summary = "Bulk update candidate stage", description = "Updates stage for multiple candidates and logs individual history records.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'HR_MANAGER')")
     @PostMapping("/bulk-stage")
     public ResponseEntity<ApiResponse<BulkStageUpdateResponse>> bulkStageUpdate(
             @Valid @RequestBody BulkStageUpdateRequest request

@@ -3,3 +3,8 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+
+rts:
+  base-url: ${RTS_BASE_URL:https://rts.example.com}
+  mail:
+    enabled: true
