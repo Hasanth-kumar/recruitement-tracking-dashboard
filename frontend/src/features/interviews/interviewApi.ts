@@ -84,6 +84,21 @@ async function fetchCandidateLookup(): Promise<
   );
 }
 
+/** Avoid failing a successful mutation when the lookup refresh errors (interview is already saved). */
+async function fetchCandidateLookupSafe(): Promise<
+  Record<string, { name: string; position: string }>
+> {
+  try {
+    return await fetchCandidateLookup();
+  } catch {
+    return {};
+  }
+}
+
+function normalizeInterviewerUsernames(usernames: string[]): string[] {
+  return [...new Set(usernames.map(u => u.trim()).filter(u => u.length > 0))];
+}
+
 export const interviewApi = createApi({
   reducerPath: 'interviewApi',
   baseQuery: axiosBaseQuery(),
@@ -181,16 +196,16 @@ export const interviewApi = createApi({
             url: '/interviews/round1',
             method: 'POST',
             data: {
-              candidateId: dto.candidateId,
+              candidateId: dto.candidateId.trim(),
               dateTime: scheduledAtToLocalDateTime(dto.scheduledAt),
               durationMinutes: dto.duration,
-              meetingLink: dto.meetingLink,
-              interviewerUsernames: dto.interviewerUsernames,
-              notes: dto.notes ?? null,
+              meetingLink: dto.meetingLink.trim(),
+              interviewerUsernames: normalizeInterviewerUsernames(dto.interviewerUsernames),
+              notes: dto.notes?.trim() ? dto.notes.trim() : null,
             },
           });
           const row = response.data?.data ?? response.data;
-          const lookup = await fetchCandidateLookup();
+          const lookup = await fetchCandidateLookupSafe();
           return { data: mapInterviewApiRow(row as Record<string, unknown>, lookup) };
         } catch (e) {
           return { error: e instanceof Error ? e.message : 'Error' };
@@ -209,16 +224,16 @@ export const interviewApi = createApi({
             url: '/interviews/round2',
             method: 'POST',
             data: {
-              candidateId: dto.candidateId,
+              candidateId: dto.candidateId.trim(),
               dateTime: scheduledAtToLocalDateTime(dto.scheduledAt),
               durationMinutes: dto.duration,
-              location: dto.location,
-              interviewerUsernames: dto.interviewerUsernames,
-              notes: dto.notes ?? null,
+              location: dto.location.trim(),
+              interviewerUsernames: normalizeInterviewerUsernames(dto.interviewerUsernames),
+              notes: dto.notes?.trim() ? dto.notes.trim() : null,
             },
           });
           const row = response.data?.data ?? response.data;
-          const lookup = await fetchCandidateLookup();
+          const lookup = await fetchCandidateLookupSafe();
           return { data: mapInterviewApiRow(row as Record<string, unknown>, lookup) };
         } catch (e) {
           return { error: e instanceof Error ? e.message : 'Error' };
@@ -246,7 +261,7 @@ export const interviewApi = createApi({
             data: body,
           });
           const row = response.data?.data ?? response.data;
-          const lookup = await fetchCandidateLookup();
+          const lookup = await fetchCandidateLookupSafe();
           return { data: mapInterviewApiRow(row as Record<string, unknown>, lookup) };
         } catch (e) {
           return { error: e instanceof Error ? e.message : 'Error' };
@@ -264,7 +279,7 @@ export const interviewApi = createApi({
             data: { reason: dto.reason },
           });
           const row = response.data?.data ?? response.data;
-          const lookup = await fetchCandidateLookup();
+          const lookup = await fetchCandidateLookupSafe();
           return { data: mapInterviewApiRow(row as Record<string, unknown>, lookup) };
         } catch (e) {
           return { error: e instanceof Error ? e.message : 'Error' };

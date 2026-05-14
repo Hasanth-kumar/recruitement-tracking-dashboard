@@ -47,8 +47,10 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
       message.success('Interview rescheduled successfully.');
       onSuccess?.();
       onClose();
-    } catch {
-      message.error('Failed to reschedule. Please try again.');
+    } catch (e: unknown) {
+      const detail =
+        e instanceof Error && e.message.trim() !== '' ? e.message : 'Failed to reschedule. Please try again.';
+      message.error(detail);
     }
   }
 

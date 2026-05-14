@@ -15,7 +15,7 @@ import {
 } from '../feedbackApi';
 import '../../../App.css';
 
-type SortField = 'candidateId' | 'round' | 'dateTime' | 'status';
+type SortField = 'candidateName' | 'round' | 'dateTime' | 'status';
 type SortDir = 'asc' | 'desc';
 
 interface SortState {
@@ -39,6 +39,12 @@ const STATUS_COLORS: Record<InterviewStatus, string> = {
   COMPLETED: '#16a34a',
   CANCELLED: '#dc2626',
 };
+
+function candidateDisplayLabel(interview: InterviewResponseDto): string {
+  const n = interview.candidateName?.trim();
+  if (n) return n;
+  return `${interview.candidateId.slice(0, 8)}…`;
+}
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
@@ -120,7 +126,7 @@ const FeedbackListPage: React.FC = () => {
       const q = search.toLowerCase();
       list = list.filter(
         (i) =>
-          i.candidateId.toLowerCase().includes(q) ||
+          (i.candidateName ?? '').toLowerCase().includes(q) ||
           i.interviewerUsernames.some((u) => u.toLowerCase().includes(q)),
       );
     }
@@ -134,8 +140,11 @@ const FeedbackListPage: React.FC = () => {
     return [...list].sort((a, b) => {
       const dir = sortState.dir === 'asc' ? 1 : -1;
       switch (sortState.field) {
-        case 'candidateId':
-          return dir * a.candidateId.localeCompare(b.candidateId);
+        case 'candidateName': {
+          const labelA = candidateDisplayLabel(a).toLowerCase();
+          const labelB = candidateDisplayLabel(b).toLowerCase();
+          return dir * labelA.localeCompare(labelB);
+        }
         case 'round':
           return dir * a.round.localeCompare(b.round);
         case 'dateTime':
@@ -174,7 +183,7 @@ const FeedbackListPage: React.FC = () => {
       <div className="fl-filter-bar">
         <Input
           prefix={<SearchOutlined style={{ color: 'var(--text-muted)' }} />}
-          placeholder="Search by candidate ID or interviewer..."
+          placeholder="Search by candidate name or interviewer..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           allowClear
@@ -239,10 +248,10 @@ const FeedbackListPage: React.FC = () => {
                 <tr>
                   <th
                     className="fl-th-sort"
-                    onClick={() => handleSortChange('candidateId')}
+                    onClick={() => handleSortChange('candidateName')}
                   >
-                    CANDIDATE ID{' '}
-                    <SortIcon field="candidateId" sortState={sortState} />
+                    CANDIDATE{' '}
+                    <SortIcon field="candidateName" sortState={sortState} />
                   </th>
                   <th
                     className="fl-th-sort"
@@ -277,11 +286,7 @@ const FeedbackListPage: React.FC = () => {
                 ) : (
                   filtered.map((interview) => (
                     <tr key={interview.id}>
-                      <td>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                          {interview.candidateId.slice(0, 8)}…
-                        </span>
-                      </td>
+                      <td>{candidateDisplayLabel(interview)}</td>
                       <td>{ROUND_LABELS[interview.round]}</td>
                       <td>{formatDateTime(interview.dateTime)}</td>
                       <td>

@@ -10,6 +10,14 @@ import {
 import type { InterviewDuration } from '../interviewTypes';
 import type { ScheduleRound1Dto, ScheduleRound2Dto } from '../interviewTypes';
 import type { RecruitmentStage } from '../../candidates/candidateTypes';
+import {
+  getScheduleMutationErrorMessage,
+  INTERVIEW_LOCATION_MAX,
+  INTERVIEW_NOTES_MAX,
+  toDateTimeLocalInputValue,
+  validateRound1Schedule,
+  validateRound2Schedule,
+} from '../interviewScheduleValidation';
 
 interface CandidateOption {
   id: string;
@@ -143,24 +151,30 @@ const ScheduleInterviewPage: React.FC = () => {
       message.error('Select at least one interviewer.');
       return;
     }
-    if (!r1MeetingLink) {
-      message.error('Please enter a meeting link.');
+    const r1Validation = validateRound1Schedule({
+      scheduledAt: r1DateTime,
+      meetingLink: r1MeetingLink,
+      notes: r1Notes,
+      duration: r1Duration,
+    });
+    if (r1Validation) {
+      message.error(r1Validation);
       return;
     }
     const dto: ScheduleRound1Dto = {
       candidateId: r1CandidateId,
       scheduledAt: r1DateTime,
       interviewerUsernames: r1InterviewerUsernames,
-      meetingLink: r1MeetingLink,
+      meetingLink: r1MeetingLink.trim(),
       duration: r1Duration,
-      notes: r1Notes || undefined,
+      notes: r1Notes.trim() ? r1Notes.trim() : undefined,
     };
     try {
       await scheduleRound1(dto).unwrap();
       message.success('Round 1 interview scheduled successfully.');
       navigate('/interviews/calendar');
-    } catch {
-      message.error('Failed to schedule interview. Please try again.');
+    } catch (err) {
+      message.error(getScheduleMutationErrorMessage(err));
     }
   }
 
@@ -178,24 +192,34 @@ const ScheduleInterviewPage: React.FC = () => {
       message.error('Select at least one interviewer.');
       return;
     }
-    if (!r2Location) {
+    if (!r2Location.trim()) {
       message.error('Please enter interview location.');
+      return;
+    }
+    const r2Validation = validateRound2Schedule({
+      scheduledAt: r2DateTime,
+      location: r2Location,
+      notes: r2Notes,
+      duration: r2Duration,
+    });
+    if (r2Validation) {
+      message.error(r2Validation);
       return;
     }
     const dto: ScheduleRound2Dto = {
       candidateId: r2CandidateId,
       scheduledAt: r2DateTime,
       interviewerUsernames: r2InterviewerUsernames,
-      location: r2Location,
+      location: r2Location.trim(),
       duration: r2Duration,
-      notes: r2Notes || undefined,
+      notes: r2Notes.trim() ? r2Notes.trim() : undefined,
     };
     try {
       await scheduleRound2(dto).unwrap();
       message.success('Round 2 interview scheduled successfully.');
       navigate('/interviews/calendar');
-    } catch {
-      message.error('Failed to schedule interview. Please try again.');
+    } catch (err) {
+      message.error(getScheduleMutationErrorMessage(err));
     }
   }
 
@@ -303,6 +327,7 @@ const ScheduleInterviewPage: React.FC = () => {
                 id="r1-datetime"
                 type="datetime-local"
                 className="si-input"
+                min={toDateTimeLocalInputValue(new Date())}
                 value={r1DateTime}
                 onChange={e => setR1DateTime(e.target.value)}
                 required
@@ -337,7 +362,9 @@ const ScheduleInterviewPage: React.FC = () => {
                 onChange={e => setR1MeetingLink(e.target.value)}
                 required
               />
-              <p className="si-hint">Google Meet, Zoom, Microsoft Teams, etc.</p>
+              <p className="si-hint">
+                Must start with http:// or https:// (server validation). Google Meet, Zoom, Teams, etc.
+              </p>
             </div>
             <div className="si-field">
               <label className="si-label">
@@ -364,6 +391,7 @@ const ScheduleInterviewPage: React.FC = () => {
                 id="r1-notes"
                 className="si-textarea"
                 rows={3}
+                maxLength={INTERVIEW_NOTES_MAX}
                 placeholder="Topics to cover, special instructions…"
                 value={r1Notes}
                 onChange={e => setR1Notes(e.target.value)}
@@ -423,6 +451,7 @@ const ScheduleInterviewPage: React.FC = () => {
                 id="r2-datetime"
                 type="datetime-local"
                 className="si-input"
+                min={toDateTimeLocalInputValue(new Date())}
                 value={r2DateTime}
                 onChange={e => setR2DateTime(e.target.value)}
                 required
@@ -452,6 +481,7 @@ const ScheduleInterviewPage: React.FC = () => {
                 id="r2-location"
                 type="text"
                 className="si-input"
+                maxLength={INTERVIEW_LOCATION_MAX}
                 placeholder="e.g. Conference Room B, 3rd Floor"
                 value={r2Location}
                 onChange={e => setR2Location(e.target.value)}
@@ -483,6 +513,7 @@ const ScheduleInterviewPage: React.FC = () => {
                 id="r2-notes"
                 className="si-textarea"
                 rows={3}
+                maxLength={INTERVIEW_NOTES_MAX}
                 placeholder="Topics to cover, special instructions…"
                 value={r2Notes}
                 onChange={e => setR2Notes(e.target.value)}

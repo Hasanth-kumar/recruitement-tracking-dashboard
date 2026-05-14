@@ -35,8 +35,10 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class InterviewService {
@@ -108,14 +110,14 @@ public class InterviewService {
                 savedInterview.getRound(),
                 savedInterview.getDateTime(),
                 savedInterview.getDurationMinutes(),
-                savedInterview.getInterviewerUsernames(),
+                snapshotInterviewerUsernames(savedInterview),
                 savedInterview.getMeetingLink(),
                 savedInterview.getLocation(),
                 savedInterview.getNotes(),
                 changedBy
         ));
 
-        return InterviewResponse.from(savedInterview);
+        return InterviewResponse.from(savedInterview, candidate.getName());
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
@@ -166,14 +168,14 @@ public class InterviewService {
                 savedInterview.getRound(),
                 savedInterview.getDateTime(),
                 savedInterview.getDurationMinutes(),
-                savedInterview.getInterviewerUsernames(),
+                snapshotInterviewerUsernames(savedInterview),
                 savedInterview.getMeetingLink(),
                 savedInterview.getLocation(),
                 savedInterview.getNotes(),
                 changedBy
         ));
 
-        return InterviewResponse.from(savedInterview);
+        return InterviewResponse.from(savedInterview, candidate.getName());
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
@@ -190,13 +192,23 @@ public class InterviewService {
             normalizedInterviewer = normalizedInterviewer.toLowerCase(Locale.ROOT);
         }
 
-        return interviewRepository.findSchedule(
-                        InterviewStatus.SCHEDULED,
-                        fromDateTime,
-                        toDateTime,
-                        normalizedInterviewer
-                ).stream()
-                .map(InterviewResponse::from)
+        List<Interview> interviews = interviewRepository.findSchedule(
+                InterviewStatus.SCHEDULED,
+                fromDateTime,
+                toDateTime,
+                normalizedInterviewer
+        );
+        if (interviews.isEmpty()) {
+            return List.of();
+        }
+        List<String> candidateIds = interviews.stream()
+                .map(Interview::getCandidateId)
+                .distinct()
+                .toList();
+        Map<String, String> namesByCandidateId = candidateRepository.findByIdInAndDeletedFalse(candidateIds).stream()
+                .collect(Collectors.toMap(Candidate::getId, Candidate::getName));
+        return interviews.stream()
+                .map(i -> InterviewResponse.from(i, namesByCandidateId.get(i.getCandidateId())))
                 .toList();
     }
 
@@ -230,7 +242,7 @@ public class InterviewService {
 
         LocalDateTime previousDateTime = interview.getDateTime();
         Integer previousDuration = interview.getDurationMinutes();
-        List<String> previousInterviewers = interview.getInterviewerUsernames();
+        List<String> previousInterviewers = snapshotInterviewerUsernames(interview);
         String previousNotes = interview.getNotes();
 
         interview.setDateTime(requestedStart);
@@ -270,7 +282,7 @@ public class InterviewService {
                 previousDateTime,
                 savedInterview.getDateTime(),
                 savedInterview.getDurationMinutes(),
-                savedInterview.getInterviewerUsernames(),
+                snapshotInterviewerUsernames(savedInterview),
                 savedInterview.getMeetingLink(),
                 savedInterview.getLocation(),
                 savedInterview.getNotes(),
@@ -278,7 +290,10 @@ public class InterviewService {
                 trimToNull(request.rescheduleReason())
         ));
 
-        return InterviewResponse.from(savedInterview);
+        return InterviewResponse.from(
+                savedInterview,
+                candidate != null ? candidate.getName() : null
+        );
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
@@ -332,14 +347,14 @@ public class InterviewService {
                 savedInterview.getRound(),
                 savedInterview.getDateTime(),
                 savedInterview.getDurationMinutes(),
-                savedInterview.getInterviewerUsernames(),
+                snapshotInterviewerUsernames(savedInterview),
                 savedInterview.getMeetingLink(),
                 savedInterview.getLocation(),
                 reason,
                 changedBy
         ));
 
-        return InterviewResponse.from(savedInterview);
+        return InterviewResponse.from(savedInterview, candidate.getName());
     }
 
     private void validateDuration(Integer durationMinutes) {
@@ -506,5 +521,10 @@ public class InterviewService {
         }
         String name = authentication.getName();
         return name == null || name.isBlank() ? "system" : name;
+    }
+
+    private static List<String> snapshotInterviewerUsernames(Interview interview) {
+        List<String> usernames = interview.getInterviewerUsernames();
+        return usernames == null || usernames.isEmpty() ? List.of() : List.copyOf(usernames);
     }
 }

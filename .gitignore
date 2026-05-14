@@ -16,6 +16,14 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Spring Boot — local overrides (passwords, mail, JWT); never commit
+backend/config/application-local.yml
+backend/config/application-local.properties
+**/application-local.yml
+**/application-local.properties
+*.pem
+*.p12
+
 coverage/
 *.tsbuildinfo
 

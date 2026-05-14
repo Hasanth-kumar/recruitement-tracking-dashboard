@@ -34,6 +34,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -332,12 +333,26 @@ class InterviewServiceTest {
                 "interviewer.a"
         )).thenReturn(List.of(first, second));
 
+        when(candidateRepository.findByIdInAndDeletedFalse(anyCollection())).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Collection<String> ids = (Collection<String>) invocation.getArgument(0);
+            return ids.stream().map(id -> {
+                Candidate c = new Candidate();
+                c.setId(id);
+                c.setName(id.equals("candidate-1") ? "First Candidate" : "Second Candidate");
+                return c;
+            }).toList();
+        });
+
         List<InterviewResponse> result = interviewService.getSchedule(from, to, " Interviewer.A ");
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).id()).isEqualTo("int-1");
+        assertThat(result.get(0).candidateName()).isEqualTo("First Candidate");
         assertThat(result.get(1).id()).isEqualTo("int-2");
+        assertThat(result.get(1).candidateName()).isEqualTo("Second Candidate");
         verify(interviewRepository).findSchedule(InterviewStatus.SCHEDULED, from, to, "interviewer.a");
+        verify(candidateRepository).findByIdInAndDeletedFalse(anyCollection());
     }
 
     @Test

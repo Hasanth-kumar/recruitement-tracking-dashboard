@@ -280,6 +280,30 @@ class NotificationServiceTest {
     }
 
     @Test
+    void handleInterviewRescheduledShouldClipInAppNotificationWhenReasonIsVeryLong() {
+        LocalDateTime oldTime = LocalDateTime.now().plusDays(1);
+        LocalDateTime newTime = oldTime.plusDays(2);
+        String longReason = "R".repeat(600);
+
+        InterviewRescheduledEvent event = new InterviewRescheduledEvent(
+                "int-201", "cand-200", "Mike Johnson", "mike@example.com",
+                InterviewRound.ROUND_1, oldTime, newTime, 60,
+                List.of("dave"),
+                "https://meet.google.com/new-link", null,
+                "Updated notes", "recruiter.user", longReason
+        );
+
+        when(userEmailResolver.resolveEmails(List.of("dave")))
+                .thenReturn(Map.of("dave", "dave@rts.com"));
+
+        notificationService.handleInterviewRescheduled(event);
+
+        verify(notificationRepository).saveAll(notificationsCaptor.capture());
+        assertThat(notificationsCaptor.getValue()).hasSize(1);
+        assertThat(notificationsCaptor.getValue().get(0).getMessage()).hasSize(500);
+    }
+
+    @Test
     void handleInterviewCancelledShouldSendEmailsToInterviewersAndCandidate() {
         LocalDateTime scheduledAt = LocalDateTime.now().plusDays(3);
 

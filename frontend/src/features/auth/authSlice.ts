@@ -69,6 +69,10 @@ const authSlice = createSlice({
      const { token, user, rememberMe } = action.payload;
      const storage = rememberMe ? localStorage : sessionStorage;
 
+     // Always wipe both first so an old localStorage token cannot keep the user
+     // "remembered" after a login without Remember me (readToken checks local first).
+     clearStorage();
+
      state.token           = token;
      state.user            = user;
      state.role            = user.role;

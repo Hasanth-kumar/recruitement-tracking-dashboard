@@ -34,6 +34,8 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    /** In-app copy; must not exceed {@code Notification} message column (500). */
+    private static final int NOTIFICATION_MESSAGE_MAX_LEN = 500;
     private static final int FEEDBACK_OVERDUE_HOURS = 24;
     private static final int LOOKBACK_DAYS = 7;
 
@@ -55,6 +57,16 @@ public class NotificationService {
         this.feedbackRepository = feedbackRepository;
         this.userEmailResolver = userEmailResolver;
         this.emailPort = emailPort;
+    }
+
+    private static String clipNotificationMessage(String message) {
+        if (message == null) {
+            return "";
+        }
+        if (message.length() <= NOTIFICATION_MESSAGE_MAX_LEN) {
+            return message;
+        }
+        return message.substring(0, NOTIFICATION_MESSAGE_MAX_LEN - 3) + "...";
     }
 
     @Scheduled(fixedRate = 3600000)
@@ -97,14 +109,14 @@ public class NotificationService {
                 notification.setUserId(interviewer);
                 notification.setType(NotificationType.FEEDBACK_PENDING);
                 notification.setRead(false);
-                notification.setMessage(
+                notification.setMessage(clipNotificationMessage(
                         "Feedback pending: Your %s interview for candidate %s on %s is awaiting feedback submission."
                                 .formatted(
                                         interview.getRound().name().replace('_', ' '),
                                         interview.getCandidateId(),
                                         interview.getDateTime().format(DATETIME_FORMAT)
                                 )
-                );
+                ));
                 notifications.add(notification);
             }
         }
@@ -129,10 +141,10 @@ public class NotificationService {
             notification.setUserId(interviewer);
             notification.setType(NotificationType.INTERVIEW_SCHEDULED);
             notification.setRead(false);
-            notification.setMessage(
+            notification.setMessage(clipNotificationMessage(
                     "%s interview scheduled for candidate %s at %s (%d mins)."
                             .formatted(roundLabel, event.candidateName(), scheduledFor, event.durationMinutes())
-            );
+            ));
             notifications.add(notification);
         }
 
@@ -161,11 +173,11 @@ public class NotificationService {
             notification.setUserId(interviewer);
             notification.setType(NotificationType.INTERVIEW_RESCHEDULED);
             notification.setRead(false);
-            notification.setMessage(
+            notification.setMessage(clipNotificationMessage(
                     "%s interview for candidate %s was rescheduled from %s to %s (%d mins).%s"
                             .formatted(roundLabel, event.candidateName(), previousTime, newTime,
                                     event.durationMinutes(), reasonSuffix)
-            );
+            ));
             notifications.add(notification);
         }
 
@@ -363,10 +375,10 @@ public class NotificationService {
             notification.setUserId(interviewer);
             notification.setType(NotificationType.INTERVIEW_CANCELLED);
             notification.setRead(false);
-            notification.setMessage(
+            notification.setMessage(clipNotificationMessage(
                     "%s interview for candidate %s scheduled at %s has been cancelled.%s"
                             .formatted(roundLabel, event.candidateName(), scheduledFor, reasonSuffix)
-            );
+            ));
             notifications.add(notification);
         }
 

@@ -74,6 +74,7 @@ class InterviewControllerTest {
         InterviewResponse row = new InterviewResponse(
                 "int-1",
                 "candidate-1",
+                "Alex Candidate",
                 InterviewRound.ROUND_2,
                 LocalDateTime.of(2026, 5, 20, 14, 30),
                 45,
@@ -123,6 +124,7 @@ class InterviewControllerTest {
         InterviewResponse response = new InterviewResponse(
                 "r2-new",
                 "candidate-x",
+                "Pat Example",
                 InterviewRound.ROUND_2,
                 LocalDateTime.of(2026, 7, 10, 11, 0),
                 60,
@@ -161,6 +163,7 @@ class InterviewControllerTest {
         InterviewResponse response = new InterviewResponse(
                 "int-rs-1",
                 "candidate-1",
+                "Jamie Lee",
                 InterviewRound.ROUND_1,
                 LocalDateTime.of(2026, 7, 12, 10, 0),
                 60,
@@ -199,6 +202,7 @@ class InterviewControllerTest {
         InterviewResponse response = new InterviewResponse(
                 "int-c-1",
                 "candidate-1",
+                "Chris Example",
                 InterviewRound.ROUND_1,
                 LocalDateTime.of(2026, 7, 15, 16, 0),
                 45,

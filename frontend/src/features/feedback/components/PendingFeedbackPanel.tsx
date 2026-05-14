@@ -21,6 +21,12 @@ function formatScheduled(iso: string): string {
   });
 }
 
+function candidateDisplayLabel(interview: InterviewResponseDto): string {
+  const n = interview.candidateName?.trim();
+  if (n) return n;
+  return `${interview.candidateId.slice(0, 8)}…`;
+}
+
 function isOverdue(interview: InterviewResponseDto): boolean {
   if (interview.status === 'CANCELLED') return false;
   const end = new Date(interview.dateTime);
@@ -139,7 +145,7 @@ const PendingFeedbackPanel: React.FC = () => {
               <div className="pending-panel-item-info">
                 <div className="pending-panel-item-top">
                   <span className="pending-panel-item-name">
-                    {interview.candidateId.slice(0, 8)}…
+                    {candidateDisplayLabel(interview)}
                   </span>
                   <span className="pending-panel-item-round">{roundLabel}</span>
                 </div>

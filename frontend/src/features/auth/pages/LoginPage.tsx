@@ -240,6 +240,7 @@ const LoginPage: React.FC = () => {
                 <Checkbox
                   checked={form.rememberMe}
                   onChange={e => handleChange('rememberMe', e.target.checked)}
+                  title="Checked: stay signed in after closing the browser. Unchecked: signed in only in this tab until you close it."
                 />
                 Remember me
               </label>

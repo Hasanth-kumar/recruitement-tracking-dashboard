@@ -52,6 +52,10 @@ export function mapInterviewApiRow(
 ): Interview {
   const candidateId = String(raw.candidateId);
   const cand = candidateLookup[candidateId] ?? { name: 'Unknown candidate', position: '—' };
+  const apiName =
+    raw.candidateName != null && String(raw.candidateName).trim() !== ''
+      ? String(raw.candidateName)
+      : cand.name;
   const names = (raw.interviewerUsernames as unknown[]) ?? [];
   const interviewers: Interviewer[] = names.map(u => ({
     id: String(u),
@@ -62,7 +66,7 @@ export function mapInterviewApiRow(
   return {
     id: String(raw.id),
     candidateId,
-    candidateName: cand.name,
+    candidateName: apiName,
     candidatePosition: cand.position,
     round: asInterviewRound(raw.round),
     scheduledAt: parseApiDateTime(raw.dateTime),

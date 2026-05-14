@@ -48,6 +48,8 @@ export type InterviewStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 export interface InterviewResponseDto {
   id: string;
   candidateId: string;
+  /** Present when returned from the real API; omitted in older payloads. */
+  candidateName?: string | null;
   round: InterviewRound;
   dateTime: string;
   durationMinutes: number;

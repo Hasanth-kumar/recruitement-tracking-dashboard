@@ -174,6 +174,34 @@ describe('LoginPage Tests', () => {
     });
   });
 
+  test('login with remember me clears a previous sessionStorage token', async () => {
+    sessionStorage.setItem('rts_token', 'stale-session-token');
+    sessionStorage.setItem('rts_role', 'ADMIN');
+    sessionStorage.setItem('rts_user', '{}');
+
+    renderLogin();
+
+    const checkbox = screen.getByRole('checkbox');
+    fireEvent.click(checkbox);
+
+    fireEvent.change(screen.getByPlaceholderText('you@company.com'), {
+      target: { value: 'admin@rts.com' },
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+      target: { value: 'Password@123' },
+    });
+
+    fireEvent.click(signInButton());
+
+    await waitFor(() => {
+      expect(localStorage.getItem('rts_token')).toBe('mock-jwt-token');
+      expect(sessionStorage.getItem('rts_token')).toBeNull();
+      expect(sessionStorage.getItem('rts_role')).toBeNull();
+      expect(sessionStorage.getItem('rts_user')).toBeNull();
+    });
+  });
+
   test('without remember me uses sessionStorage', async () => {
     renderLogin();
 
@@ -189,6 +217,31 @@ describe('LoginPage Tests', () => {
 
     await waitFor(() => {
       expect(sessionStorage.getItem('rts_token')).not.toBeNull();
+    });
+  });
+
+  test('login without remember me clears a previous localStorage token', async () => {
+    localStorage.setItem('rts_token', 'stale-local-token');
+    localStorage.setItem('rts_role', 'ADMIN');
+    localStorage.setItem('rts_user', '{}');
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText('you@company.com'), {
+      target: { value: 'admin@rts.com' },
+    });
+
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), {
+      target: { value: 'Password@123' },
+    });
+
+    fireEvent.click(signInButton());
+
+    await waitFor(() => {
+      expect(sessionStorage.getItem('rts_token')).toBe('mock-jwt-token');
+      expect(localStorage.getItem('rts_token')).toBeNull();
+      expect(localStorage.getItem('rts_role')).toBeNull();
+      expect(localStorage.getItem('rts_user')).toBeNull();
     });
   });
 
