@@ -45,6 +45,14 @@ public class InterviewPhotoService {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
+    @Transactional(readOnly = true)
+    public List<InterviewPhoto> listPhotosForInterview(String interviewId) {
+        interviewRepository.findById(interviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Interview not found: " + interviewId));
+        return interviewPhotoRepository.findByInterviewIdAndDeletedFalseOrderByUploadedAtAsc(interviewId);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER', 'INTERVIEWER')")
     @Transactional
     public List<InterviewPhoto> uploadPhotos(String interviewId, List<MultipartFile> files, List<String> captions) {
         Interview interview = interviewRepository.findById(interviewId)

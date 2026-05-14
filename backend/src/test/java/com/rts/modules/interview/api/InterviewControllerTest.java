@@ -1,5 +1,6 @@
 package com.rts.modules.interview.api;
 
+import com.rts.modules.auth.application.UserService;
 import com.rts.modules.interview.api.dto.InterviewResponse;
 import com.rts.modules.interview.api.dto.CancelInterviewRequest;
 import com.rts.modules.interview.api.dto.RescheduleInterviewRequest;
@@ -49,6 +50,9 @@ class InterviewControllerTest {
 
     @MockBean
     private InterviewPhotoService interviewPhotoService;
+
+    @MockBean
+    private UserService userService;
 
     @MockBean
     private JwtService jwtService;

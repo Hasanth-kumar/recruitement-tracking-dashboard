@@ -95,6 +95,14 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.newPassword()));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR_MANAGER', 'RECRUITER')")
+    @Transactional(readOnly = true)
+    public List<User> listInterviewersForScheduling() {
+        return userRepository.findByDeletedFalseOrderByUsernameAsc().stream()
+                .filter(user -> user.getRole() == Role.INTERVIEWER)
+                .toList();
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public List<User> listUsersForAdmin() {

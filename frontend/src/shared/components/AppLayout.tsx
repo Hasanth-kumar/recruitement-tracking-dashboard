@@ -113,7 +113,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             </div>
           )}
 
-          {hasRole(Role.ADMIN, Role.HR_MANAGER, Role.INTERVIEWER) && (
+          {hasRole(Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER, Role.INTERVIEWER) && (
             <div
               className={`app-layout-menu-item ${isActive('/interviews') ? 'active' : ''}`}
               onClick={() => navigate('/interviews')}

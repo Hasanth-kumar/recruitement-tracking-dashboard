@@ -1,4 +1,6 @@
 import React from 'react';
+import './features/interviews/interviews.css';
+import './features/interviews/_cal_theme.css';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { TeamOutlined, UserOutlined, UsergroupAddOutlined } from '@ant-design/icons';
 import LoginPage from './features/auth/pages/LoginPage';
@@ -14,6 +16,8 @@ import ForbiddenPage from './shared/components/ForbiddenPage';
 import AppLayout from './shared/components/AppLayout';
 import FeedbackFormPage from './features/feedback/pages/FeedbackFormPage';
 import FeedbackListPage from './features/feedback/pages/FeedbackListPage';
+import InterviewCalendarPage from './features/interviews/pages/InterviewCalendarPage';
+import ScheduleInterviewPage from './features/interviews/pages/ScheduleInterviewPage';
 
 function isLoggedIn(): boolean {
   return !!(localStorage.getItem('rts_token') || sessionStorage.getItem('rts_token'));
@@ -160,6 +164,26 @@ const App: React.FC = () => {
             <AppLayout><FeedbackFormPage /></AppLayout>
           </ProtectedRoute>
         } />
+        <Route
+          path="/interviews"
+          element={
+            <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER, Role.INTERVIEWER]}>
+              <AppLayout>
+                <InterviewCalendarPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/interviews/schedule"
+          element={
+            <ProtectedRoute allowedRoles={[Role.ADMIN, Role.HR_MANAGER, Role.RECRUITER, Role.INTERVIEWER]}>
+              <AppLayout>
+                <ScheduleInterviewPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to={isLoggedIn() ? '/dashboard' : '/login'} replace />} />
